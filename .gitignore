@@ -11,3 +11,6 @@ wheels/
 
 # IDE
 .idea/
+
+# Generated artifacts
+benchmark_results.png
