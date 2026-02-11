@@ -26,7 +26,7 @@ uv run diagnostic.py
 
 **Pipeline flow**: Audio bytes → STT → LLM → TTS → Audio response
 
-- **STT**: Faster-Whisper (`base` model, CUDA, float16)
+- **STT**: Faster-Whisper (`small` model, CUDA, float16)
 - **LLM**: vLLM with `meta-llama/Llama-3.2-3B-Instruct` (half precision, 512 token context)
 - **TTS**: Piper via CLI subprocess (Spanish voice model)
 
@@ -40,7 +40,7 @@ vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that req
 
 ## External Dependencies
 
-- Piper TTS model expected at: `~/piper_models/es_ES-sharvard-medium.onnx`
+- Piper TTS model expected at: `~/piper_models/es_ES-carlfm-x_low.onnx`
 - `piper` command must be in PATH
 - GPU with ~10GB+ VRAM (Llama 3.2-3B uses ~6GB, Whisper uses additional memory)
 

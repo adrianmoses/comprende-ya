@@ -46,7 +46,7 @@ llm_model = LLM(
 # Whisper
 logger.info("  - Cargando Whisper...")
 whisper_model = WhisperModel(
-    "base",  # Más rápido que medium
+    "small",  # Better accuracy than base for Spanish
     device="cuda",
     compute_type="float16"
 )
@@ -61,7 +61,7 @@ sampling_params = SamplingParams(
 logger.info("  ✅ Llama 3.2-3B cargado")
 
 # Piper TTS
-PIPER_MODEL_PATH = os.path.expanduser("~/piper_models/es_ES-sharvard-medium.onnx")
+PIPER_MODEL_PATH = os.path.expanduser("~/piper_models/es_ES-carlfm-x_low.onnx")
 logger.info(f"  - Piper TTS: {PIPER_MODEL_PATH}")
 logger.info("✅ Todos los modelos listos!")
 
@@ -78,8 +78,10 @@ async def transcribe_audio(audio_bytes):
         segments, info = whisper_model.transcribe(
             audio_np,
             language="es",
-            beam_size=3,  # Reducido para velocidad
-            vad_filter=True  # Filtrar silencio
+            beam_size=5,
+            vad_filter=True,
+            temperature=0.0,
+            initial_prompt="Hola, ¿cómo estás? Soy un asistente de español.",
         )
         return " ".join([segment.text for segment in segments]).strip()
 
@@ -243,7 +245,33 @@ async def health():
     return {"status": "ok", "gpu": torch.cuda.get_device_name(0)}
 
 
+def warmup():
+    """Warm up all models to avoid cold-start latency."""
+    logger.info("🔥 Warming up models...")
+
+    # STT warmup
+    dummy_audio = np.zeros(16000, dtype=np.float32)  # 1s silence
+    whisper_model.transcribe(dummy_audio, language="es")
+    logger.info("  ✅ STT warm")
+
+    # LLM warmup
+    llm_model.generate(["Hola"], SamplingParams(max_tokens=1))
+    logger.info("  ✅ LLM warm")
+
+    # TTS warmup
+    subprocess.run(
+        ["piper", "--model", PIPER_MODEL_PATH, "--output_file", "/dev/null"],
+        input=b"Hola",
+        capture_output=True,
+        timeout=10,
+    )
+    logger.info("  ✅ TTS warm")
+
+    logger.info("✅ Warmup complete!")
+
+
 if __name__ == "__main__":
     import uvicorn
 
+    warmup()
     uvicorn.run(app, host="0.0.0.0", port=8765)

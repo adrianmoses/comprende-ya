@@ -14,3 +14,5 @@ wheels/
 
 # Generated artifacts
 benchmark_results.png
+
+*.wav
