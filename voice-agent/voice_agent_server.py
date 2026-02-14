@@ -40,7 +40,7 @@ llm_model = LLM(
     dtype="half",
     max_model_len=512,  # Contexto corto
     enforce_eager=False,
-    trust_remote_code=True
+    trust_remote_code=True,
 )
 
 # Whisper
@@ -48,7 +48,7 @@ logger.info("  - Cargando Whisper...")
 whisper_model = WhisperModel(
     "small",  # Better accuracy than base for Spanish
     device="cuda",
-    compute_type="float16"
+    compute_type="float16",
 )
 logger.info("  ✅ Whisper cargado")
 
@@ -56,7 +56,7 @@ sampling_params = SamplingParams(
     temperature=0.7,
     top_p=0.9,
     max_tokens=30,  # Respuestas cortas
-    stop=["<|eot_id|>", "\n\n", "Usuario:", "<|end"]
+    stop=["<|eot_id|>", "\n\n", "Usuario:", "<|end"],
 )
 logger.info("  ✅ Llama 3.2-3B cargado")
 
@@ -69,6 +69,7 @@ logger.info("✅ Todos los modelos listos!")
 # ============================================
 # FUNCIONES
 # ============================================
+
 
 async def transcribe_audio(audio_bytes):
     """STT con timeout"""
@@ -104,11 +105,11 @@ Eres un profesor de español. Responde con UNA sola frase corta y natural.<|eot_
         response = outputs[0].outputs[0].text.strip()
 
         # Limpiar
-        response = response.split('\n')[0].split('<|')[0].strip()
+        response = response.split("\n")[0].split("<|")[0].strip()
 
         # Limitar longitud
         if len(response) > 150:
-            response = response[:150].rsplit(' ', 1)[0] + "..."
+            response = response[:150].rsplit(" ", 1)[0] + "..."
 
         return response
 
@@ -123,29 +124,32 @@ async def text_to_speech(text):
 
     text = text[:200]  # Limitar
 
-    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
         tmp_path = tmp_file.name
 
     try:
         process = await asyncio.create_subprocess_exec(
             "piper",
-            '--model', PIPER_MODEL_PATH,
-            '--output_file', tmp_path,
+            "--model",
+            PIPER_MODEL_PATH,
+            "--output_file",
+            tmp_path,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
 
         stdout, stderr = await asyncio.wait_for(
-            process.communicate(input=text.encode('utf-8')),
-            timeout=5.0  # Timeout de 5s
+            process.communicate(input=text.encode("utf-8")),
+            timeout=5.0,  # Timeout de 5s
         )
 
         if process.returncode != 0:
             raise Exception(f"Piper error: {stderr.decode()}")
 
         import wave
-        with wave.open(tmp_path, 'rb') as wf:
+
+        with wave.open(tmp_path, "rb") as wf:
             audio_data = wf.readframes(wf.getnframes())
 
         return audio_data
@@ -165,6 +169,7 @@ async def text_to_speech(text):
 # ============================================
 # WEBSOCKET
 # ============================================
+
 
 class Metrics:
     def __init__(self):
@@ -219,18 +224,24 @@ async def voice_websocket(websocket: WebSocket):
             tts_start = datetime.now()
             audio_response = await text_to_speech(response_text)
             metrics.tts_time = (datetime.now() - tts_start).total_seconds()
-            logger.info(f"🔊 TTS: {len(audio_response)} bytes ({metrics.tts_time * 1000:.0f}ms)")
+            logger.info(
+                f"🔊 TTS: {len(audio_response)} bytes ({metrics.tts_time * 1000:.0f}ms)"
+            )
 
             metrics.total_time = (datetime.now() - start).total_seconds()
 
             # Enviar respuesta (audio primero, luego métricas)
             await websocket.send_bytes(audio_response)
-            await websocket.send_text(json.dumps({
-                "type": "metrics",
-                "data": metrics.to_dict(),
-                "transcription": transcription,
-                "response": response_text
-            }))
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "metrics",
+                        "data": metrics.to_dict(),
+                        "transcription": transcription,
+                        "response": response_text,
+                    }
+                )
+            )
 
             logger.info(f"📤 TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60)
 

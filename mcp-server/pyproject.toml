@@ -1,0 +1,6 @@
+[project]
+name = "mcp-server"
+version = "0.1.0"
+description = "MCP server with knowledge graph for Spanish learning (Phase 2)"
+requires-python = ">=3.12"
+dependencies = []

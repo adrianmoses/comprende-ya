@@ -4,27 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Spanish voice agent using local AI models for real-time voice conversation. Processes audio through a STT → LLM → TTS pipeline via WebSocket.
+Spanish learning app powered by local AI. Monorepo with a voice agent (Python), web client (Next.js), and MCP server (placeholder).
+
+## Monorepo Structure
+
+```
+comprende-ya/
+├── voice-agent/        # STT → LLM → TTS pipeline (Python/uv)
+├── webapp/             # Next.js web client (pnpm)
+├── shared/             # Shared TypeScript types & constants
+├── mcp-server/         # Knowledge graph server (Phase 2, placeholder)
+├── pyproject.toml      # Root uv workspace
+└── docker-compose.yml  # Placeholder for Phase 4
+```
 
 ## Commands
 
 ```bash
-# Run the main server (starts on port 8765)
-uv run voice_agent_server.py
+# Python workspace (from repo root)
+uv sync --all-packages                           # Install all Python deps
+uv run --package voice-agent python voice-agent/voice_agent_server.py  # Start voice agent
+uv run ruff check voice-agent/                   # Lint Python
+uv run ruff format voice-agent/                  # Format Python
+uv run mypy voice-agent/ --ignore-missing-imports # Type-check Python
 
-# Test with microphone input
-uv run test_client.py
+# Webapp (from webapp/)
+cd webapp && pnpm install                         # Install JS deps
+cd webapp && pnpm dev                             # Dev server on port 3000
+cd webapp && pnpm lint                            # ESLint
+cd webapp && pnpm tsc --noEmit                    # Type-check TypeScript
 
-# Run performance benchmark
-uv run benchmark.py
-
-# Run component diagnostics (mic, STT, TTS)
-uv run diagnostic.py
+# Voice agent scripts (from repo root)
+uv run --package voice-agent python voice-agent/test_client.py    # Mic test
+uv run --package voice-agent python voice-agent/benchmark.py      # Benchmark
+uv run --package voice-agent python voice-agent/diagnostic.py     # Diagnostics
 ```
 
 ## Architecture
 
-**Pipeline flow**: Audio bytes → STT → LLM → TTS → Audio response
+**Voice pipeline**: Audio bytes → STT → LLM → TTS → Audio response
 
 - **STT**: Faster-Whisper (`small` model, CUDA, float16)
 - **LLM**: vLLM with `meta-llama/Llama-3.2-3B-Instruct` (half precision, 512 token context)
@@ -33,6 +51,10 @@ uv run diagnostic.py
 **Server**: FastAPI with WebSocket endpoint at `/ws/voice`
 - Receives: raw int16 audio bytes (16kHz mono)
 - Returns: audio bytes + JSON metrics (transcription, response, latencies)
+
+**Webapp**: Next.js 15 with App Router
+- AudioWorklet captures mic → PCM int16 via WebSocket
+- Health check polling at `/health`
 
 ## Critical: Model Loading Order
 
@@ -57,9 +79,13 @@ vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that req
 
 ## Key Files
 
-- `voice_agent_server.py`: Production server with real models
-- `voice_agent_local.py`: Pipecat-based pipeline with mock services (for testing pipeline structure)
-- `test_client.py`: Interactive microphone test client
-- `benchmark.py`: Latency benchmarking tool (generates `benchmark_results.png`)
-- `diagnostic.py`: Component-level diagnostic (mic capture, Whisper, Piper)
+- `voice-agent/voice_agent_server.py`: Production server with real models
+- `voice-agent/voice_agent_local.py`: Pipecat-based pipeline with mock services
+- `voice-agent/test_client.py`: Interactive microphone test client
+- `voice-agent/benchmark.py`: Latency benchmarking tool
+- `voice-agent/diagnostic.py`: Component-level diagnostic
+- `webapp/hooks/useVoiceAgent.ts`: WebSocket + audio capture hook
+- `webapp/hooks/useHealthCheck.ts`: Health polling hook
+- `shared/types/voice-protocol.ts`: Protocol TypeScript types
+- `shared/constants.ts`: Shared configuration constants
 - `NEXT_STEPS.md`: Development roadmap / TODO checklist

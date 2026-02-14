@@ -6,7 +6,7 @@ A Spanish learning app powered by local AI: structured lessons, free conversatio
 
 ## Phase 0 — Voice Pipeline Prototype (Done)
 
-The working prototype lives in `es-voice-agent/`. Sub-1s latency, accurate Spanish transcription.
+The working prototype lives in `voice-agent/`. Sub-1s latency, accurate Spanish transcription.
 
 - [x] STT via Faster-Whisper (`small` model, CUDA, float16)
 - [x] LLM via vLLM (`Llama-3.2-3B-Instruct`, half precision)
@@ -35,14 +35,14 @@ comprende-ya/
 
 ### Checklist
 
-- [ ] Create monorepo root with top-level `pyproject.toml` / workspace config
-- [ ] Move voice agent code into `voice-agent/` subdirectory
-- [ ] Update imports, paths, and CLAUDE.md references
-- [ ] Scaffold `webapp/` with Next.js + TypeScript
-- [ ] WebSocket client hook connecting to voice agent
-- [ ] Basic audio capture/playback in browser (MediaRecorder → PCM int16 → WS)
-- [ ] Health check indicator in webapp UI
-- [ ] CI: lint + type-check for both Python and TS
+- [x] Create monorepo root with top-level `pyproject.toml` / workspace config
+- [x] Move voice agent code into `voice-agent/` subdirectory
+- [x] Update imports, paths, and CLAUDE.md references
+- [x] Scaffold `webapp/` with Next.js + TypeScript
+- [x] WebSocket client hook connecting to voice agent
+- [x] Basic audio capture/playback in browser (AudioWorklet → PCM int16 → WS)
+- [x] Health check indicator in webapp UI
+- [x] CI: lint + type-check for both Python and TS
 
 ---
 

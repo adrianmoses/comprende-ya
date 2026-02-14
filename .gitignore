@@ -16,3 +16,10 @@ wheels/
 benchmark_results.png
 
 *.wav
+
+# Node.js / Next.js
+node_modules/
+.next/
+.env*.local
+out/
+.pnpm-store/
