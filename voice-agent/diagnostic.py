@@ -1,8 +1,12 @@
 # diagnostic.py
-import sounddevice as sd
-import numpy as np
-from faster_whisper import WhisperModel
+import os
+import subprocess
+import tempfile
 import wave
+
+import numpy as np
+import sounddevice as sd
+from faster_whisper import WhisperModel
 
 print("🔍 DIAGNÓSTICO DE COMPONENTES\n")
 
@@ -18,7 +22,7 @@ audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, 
 sd.wait()
 
 audio_level = np.abs(audio).mean()
-print(f"✅ Audio capturado")
+print("✅ Audio capturado")
 print(f"   Nivel promedio: {audio_level:.2f}")
 print(f"   Máximo: {np.abs(audio).max()}")
 print(f"   ¿Es silencio?: {'SÍ ⚠️' if audio_level < 50 else 'NO ✅'}")
@@ -68,10 +72,6 @@ if not transcription:
 print("\n" + "=" * 60)
 print("TEST 3: TEXT-TO-SPEECH (PIPER)")
 print("=" * 60)
-
-import subprocess
-import tempfile
-import os
 
 test_text = "Hola, esta es una prueba de síntesis de voz en español."
 print(f"📝 Generando audio para: '{test_text}'")

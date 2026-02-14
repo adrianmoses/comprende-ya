@@ -1,0 +1,3 @@
+# Placeholder for Phase 4 — Docker Compose orchestration
+# See NEXT_STEPS.md for the deployment roadmap.
+services: {}

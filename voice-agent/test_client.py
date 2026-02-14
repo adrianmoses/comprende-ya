@@ -29,7 +29,7 @@ async def test_with_mic():
         print("✅ Grabación completada")
 
         # Enviar audio
-        print(f"📤 Enviando audio al servidor...")
+        print("📤 Enviando audio al servidor...")
         await websocket.send(audio.tobytes())
 
         # Recibir respuesta
