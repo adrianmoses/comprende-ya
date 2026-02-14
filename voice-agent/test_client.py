@@ -23,7 +23,7 @@ async def test_with_mic():
             int(duration * sample_rate),
             samplerate=sample_rate,
             channels=1,
-            dtype=np.int16
+            dtype=np.int16,
         )
         sd.wait()
         print("✅ Grabación completada")

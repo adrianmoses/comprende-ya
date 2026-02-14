@@ -18,7 +18,9 @@ print("🎤 Habla ahora (di: 'Hola, esto es una prueba') - 3 segundos...")
 
 duration = 3
 sample_rate = 16000
-audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype=np.int16)
+audio = sd.rec(
+    int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype=np.int16
+)
 sd.wait()
 
 audio_level = np.abs(audio).mean()
@@ -50,17 +52,15 @@ whisper_model = WhisperModel("medium", device="cuda", compute_type="float16")
 audio_np = audio.flatten().astype(np.float32) / 32768.0
 
 segments, info = whisper_model.transcribe(
-    audio_np,
-    language="es",
-    beam_size=5,
-    vad_filter=True,
-    temperature=0.0
+    audio_np, language="es", beam_size=5, vad_filter=True, temperature=0.0
 )
 
 transcription = " ".join([segment.text for segment in segments]).strip()
 
 print(f"✅ Transcripción: '{transcription}'")
-print(f"   Idioma detectado: {info.language} (confianza: {info.language_probability:.2f})")
+print(
+    f"   Idioma detectado: {info.language} (confianza: {info.language_probability:.2f})"
+)
 
 if not transcription:
     print("⚠️  PROBLEMA: Transcripción vacía!")
@@ -78,15 +78,15 @@ print(f"📝 Generando audio para: '{test_text}'")
 
 PIPER_MODEL = os.path.expanduser("~/piper_models/es_ES-sharvard-medium.onnx")
 
-with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
     tmp_path = tmp_file.name
 
 try:
     result = subprocess.run(
         ["piper", "--model", PIPER_MODEL, "--output_file", tmp_path],
-        input=test_text.encode('utf-8'),
+        input=test_text.encode("utf-8"),
         capture_output=True,
-        timeout=5
+        timeout=5,
     )
 
     if result.returncode != 0:
@@ -96,7 +96,7 @@ try:
 
         # Reproducir
         print("🔊 Reproduciendo TTS...")
-        with wave.open(tmp_path, 'rb') as wf:
+        with wave.open(tmp_path, "rb") as wf:
             tts_audio = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16)
             sd.play(tts_audio, wf.getframerate())
             sd.wait()

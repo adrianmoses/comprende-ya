@@ -10,12 +10,7 @@ async def run_benchmark(num_tests=10):
     """Ejecuta múltiples tests y recopila estadísticas"""
     uri = "ws://localhost:8765/ws/voice"
 
-    results = {
-        "stt": [],
-        "llm": [],
-        "tts": [],
-        "total": []
-    }
+    results = {"stt": [], "llm": [], "tts": [], "total": []}
 
     print(f"🧪 Ejecutando {num_tests} tests...")
 
@@ -52,20 +47,24 @@ async def run_benchmark(num_tests=10):
 
     # Visualización
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    fig.suptitle('Voice Agent Performance Benchmark', fontsize=16)
+    fig.suptitle("Voice Agent Performance Benchmark", fontsize=16)
 
     components = ["stt", "llm", "tts", "total"]
     for idx, (ax, comp) in enumerate(zip(axes.flat, components)):
-        ax.hist(results[comp], bins=20, edgecolor='black', alpha=0.7)
-        ax.set_title(f'{comp.upper()} Latency')
-        ax.set_xlabel('Latency (ms)')
-        ax.set_ylabel('Frequency')
-        ax.axvline(mean(results[comp]), color='r', linestyle='--',
-                   label=f'Mean: {mean(results[comp]):.2f}ms')
+        ax.hist(results[comp], bins=20, edgecolor="black", alpha=0.7)
+        ax.set_title(f"{comp.upper()} Latency")
+        ax.set_xlabel("Latency (ms)")
+        ax.set_ylabel("Frequency")
+        ax.axvline(
+            mean(results[comp]),
+            color="r",
+            linestyle="--",
+            label=f"Mean: {mean(results[comp]):.2f}ms",
+        )
         ax.legend()
 
     plt.tight_layout()
-    plt.savefig('benchmark_results.png')
+    plt.savefig("benchmark_results.png")
     print("\n📈 Gráfico guardado en benchmark_results.png")
 
 
