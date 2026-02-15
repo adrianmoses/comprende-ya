@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { VOICE_AGENT_HEALTH_URL } from "../../shared/constants";
+import { VOICE_AGENT_HEALTH_URL } from "@/lib/constants";
 
 export interface HealthStatus {
   connected: boolean;

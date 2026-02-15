@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "../../shared/constants";
-import type { VoiceResponse } from "../../shared/types/voice-protocol";
+import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "@/lib/constants";
+import type { VoiceResponse } from "@/lib/voice-protocol";
 
 export interface VoiceAgentState {
   recording: boolean;
@@ -27,6 +27,7 @@ export function useVoiceAgent() {
 
   const startRecording = useCallback(async () => {
     try {
+      console.log("startRecording")
       setState((s) => ({ ...s, error: null, recording: true }));
 
       // Set up WebSocket
@@ -34,11 +35,13 @@ export function useVoiceAgent() {
       wsRef.current = ws;
 
       ws.onmessage = async (event) => {
+        console.log("breakpoint 2")
         if (event.data instanceof Blob) {
           // Binary frame: audio response — play it
           const arrayBuffer = await event.data.arrayBuffer();
           const int16 = new Int16Array(arrayBuffer);
           const float32 = new Float32Array(int16.length);
+          console.log("breakpoint x")
           for (let i = 0; i < int16.length; i++) {
             float32[i] = int16[i] / 32768;
           }
@@ -104,6 +107,7 @@ export function useVoiceAgent() {
   }, []);
 
   const stopRecording = useCallback(() => {
+    console.log("stopRecording")
     setState((s) => ({ ...s, recording: false, processing: true }));
 
     // Stop mic
