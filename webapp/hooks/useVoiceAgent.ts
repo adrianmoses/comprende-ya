@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "../../shared/constants";
-import type { VoiceResponse } from "../../shared/types/voice-protocol";
+import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "@/lib/constants";
+import type { VoiceResponse } from "@/lib/voice-protocol";
 
 export interface VoiceAgentState {
   recording: boolean;

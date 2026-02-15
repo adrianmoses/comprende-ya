@@ -12,7 +12,6 @@ Spanish learning app powered by local AI. Monorepo with a voice agent (Python), 
 comprende-ya/
 ├── voice-agent/        # STT → LLM → TTS pipeline (Python/uv)
 ├── webapp/             # Next.js web client (pnpm)
-├── shared/             # Shared TypeScript types & constants
 ├── mcp-server/         # Knowledge graph server (Phase 2, placeholder)
 ├── pyproject.toml      # Root uv workspace
 └── docker-compose.yml  # Placeholder for Phase 4
@@ -86,6 +85,6 @@ vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that req
 - `voice-agent/diagnostic.py`: Component-level diagnostic
 - `webapp/hooks/useVoiceAgent.ts`: WebSocket + audio capture hook
 - `webapp/hooks/useHealthCheck.ts`: Health polling hook
-- `shared/types/voice-protocol.ts`: Protocol TypeScript types
-- `shared/constants.ts`: Shared configuration constants
+- `webapp/lib/voice-protocol.ts`: Protocol TypeScript types
+- `webapp/lib/constants.ts`: Voice agent URLs & audio constants
 - `NEXT_STEPS.md`: Development roadmap / TODO checklist
