@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Spanish learning app powered by local AI. Monorepo with a voice agent (Python), web client (Next.js), and MCP server (placeholder).
+Spanish learning app powered by local AI. Monorepo with a voice agent (Python), web client (Next.js), and MCP server (knowledge graph + curriculum).
 
 ## Monorepo Structure
 
@@ -12,9 +12,9 @@ Spanish learning app powered by local AI. Monorepo with a voice agent (Python), 
 comprende-ya/
 ├── voice-agent/        # STT → LLM → TTS pipeline (Python/uv)
 ├── webapp/             # Next.js web client (pnpm)
-├── mcp-server/         # Knowledge graph server (Phase 2, placeholder)
+├── mcp-server/         # Knowledge graph MCP server (FastMCP + PostgreSQL/AGE)
 ├── pyproject.toml      # Root uv workspace
-└── docker-compose.yml  # Placeholder for Phase 4
+└── docker-compose.yml  # PostgreSQL + Apache AGE (port 5455)
 ```
 
 ## Commands
@@ -37,6 +37,15 @@ cd webapp && pnpm tsc --noEmit                    # Type-check TypeScript
 uv run --package voice-agent python voice-agent/test_client.py    # Mic test
 uv run --package voice-agent python voice-agent/benchmark.py      # Benchmark
 uv run --package voice-agent python voice-agent/diagnostic.py     # Diagnostics
+
+# MCP server (from repo root)
+docker compose up -d                                              # Start AGE database
+uv run --package mcp-server python -m mcp_server.seed             # Seed A1 curriculum
+uv run --package mcp-server python -m mcp_server.server           # Start MCP server (port 8001)
+uv run ruff check mcp-server/                                     # Lint MCP server
+uv run ruff format mcp-server/                                    # Format MCP server
+uv run mypy mcp-server/mcp_server/ --ignore-missing-imports       # Type-check MCP server
+uv run --package mcp-server pytest mcp-server/tests/ -v           # Run tests
 ```
 
 ## Architecture
@@ -50,6 +59,13 @@ uv run --package voice-agent python voice-agent/diagnostic.py     # Diagnostics
 **Server**: FastAPI with WebSocket endpoint at `/ws/voice`
 - Receives: raw int16 audio bytes (16kHz mono)
 - Returns: audio bytes + JSON metrics (transcription, response, latencies)
+
+**MCP Server**: FastMCP with PostgreSQL + Apache AGE (Cypher graph queries)
+- Knowledge graph: Topics, Vocabulary, GrammarRules, Phrases with prerequisite chains
+- Learner tracking: Attempts, Sessions, mastery/struggle edges
+- Spaced repetition: SM-2 algorithm in relational side table
+- 5 tools: query_curriculum, get_next_topics, record_attempt, get_learner_profile, get_session_context
+- Every connection requires `LOAD 'age'` — handled by pool configure callback
 
 **Webapp**: Next.js 15 with App Router
 - AudioWorklet captures mic → PCM int16 via WebSocket
@@ -87,4 +103,11 @@ vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that req
 - `webapp/hooks/useHealthCheck.ts`: Health polling hook
 - `webapp/lib/voice-protocol.ts`: Protocol TypeScript types
 - `webapp/lib/constants.ts`: Voice agent URLs & audio constants
+- `mcp-server/mcp_server/server.py`: FastMCP server with tool registration + lifespan
+- `mcp-server/mcp_server/db.py`: Async pool, cypher_query() helper
+- `mcp-server/mcp_server/graph_schema.py`: AGE graph schema initialization
+- `mcp-server/mcp_server/seed.py`: YAML curriculum → graph seeder
+- `mcp-server/mcp_server/spaced_repetition.py`: Pure SM-2 logic
+- `mcp-server/curriculum/a1_seed.yaml`: Seed curriculum (4 topics)
+- `voice-agent/mcp_client.py`: MCP client wrapper for voice agent
 - `NEXT_STEPS.md`: Development roadmap / TODO checklist

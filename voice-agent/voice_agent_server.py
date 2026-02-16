@@ -12,6 +12,8 @@ import subprocess
 import tempfile
 import os
 
+from mcp_client import get_next_topics
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -89,12 +91,18 @@ async def transcribe_audio(audio_bytes):
     return await asyncio.to_thread(_transcribe)
 
 
-async def generate_response(user_text):
-    """LLM con prompt limpio"""
+async def generate_response(user_text, curriculum_context: str = ""):
+    """LLM con prompt limpio, optionally enriched with curriculum context."""
+
+    system_msg = (
+        "Eres un profesor de español. Responde con UNA sola frase corta y natural."
+    )
+    if curriculum_context:
+        system_msg += f"\n\n{curriculum_context}"
 
     prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-Eres un profesor de español. Responde con UNA sola frase corta y natural.<|eot_id|><|start_header_id|>user<|end_header_id|>
+{system_msg}<|eot_id|><|start_header_id|>user<|end_header_id|>
 
 {user_text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 
@@ -190,10 +198,33 @@ class Metrics:
         }
 
 
+LEARNER_ID = os.getenv("LEARNER_ID", "default_learner")
+
+
 @app.websocket("/ws/voice")
 async def voice_websocket(websocket: WebSocket):
     await websocket.accept()
     logger.info("✅ Cliente conectado")
+
+    # Fetch curriculum context once per connection.
+    # TODO: refresh periodically for long-lived connections so context
+    # stays up-to-date as the learner progresses.
+    curriculum_context = ""
+    try:
+        topics = await get_next_topics(LEARNER_ID, limit=2)
+        if topics:
+            topic_names = [
+                t.get("name", t.get("topic_id", ""))
+                for t in topics
+                if isinstance(t, dict)
+            ]
+            if topic_names:
+                curriculum_context = (
+                    f"El estudiante debería practicar: {', '.join(topic_names)}. "
+                    "Incorpora estos temas en la conversación."
+                )
+    except Exception as e:
+        logger.warning(f"MCP context fetch failed: {e}")
 
     try:
         while True:
@@ -216,7 +247,7 @@ async def voice_websocket(websocket: WebSocket):
 
             # LLM
             llm_start = datetime.now()
-            response_text = await generate_response(transcription)
+            response_text = await generate_response(transcription, curriculum_context)
             metrics.llm_time = (datetime.now() - llm_start).total_seconds()
             logger.info(f"🤖 LLM: '{response_text}' ({metrics.llm_time * 1000:.0f}ms)")
 
@@ -244,6 +275,9 @@ async def voice_websocket(websocket: WebSocket):
             )
 
             logger.info(f"📤 TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60)
+
+            # TODO(Phase 3): extract practiced topic from transcription/response
+            # and call record_attempt with the actual topic_id and result.
 
     except WebSocketDisconnect:
         logger.info("❌ Cliente desconectado")
