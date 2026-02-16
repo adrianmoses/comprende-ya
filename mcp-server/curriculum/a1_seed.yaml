@@ -1,0 +1,113 @@
+topics:
+  - id: saludos
+    name: "Saludos y presentaciones"
+    level: A1
+    category: comunicacion
+    description: "Greetings and introductions in Spanish"
+    vocabulary:
+      - id: vocab_hola
+        word_es: "hola"
+        word_en: "hello"
+        pos: interjection
+        example_es: "¡Hola! ¿Cómo estás?"
+      - id: vocab_nombre
+        word_es: "nombre"
+        word_en: "name"
+        gender: masculine
+        pos: noun
+        example_es: "Mi nombre es María."
+      - id: vocab_bien
+        word_es: "bien"
+        word_en: "well/good"
+        pos: adverb
+        example_es: "Estoy muy bien, gracias."
+    phrases:
+      - id: phrase_como_te_llamas
+        phrase_es: "¿Cómo te llamas?"
+        phrase_en: "What is your name?"
+        context: introductions
+      - id: phrase_mucho_gusto
+        phrase_es: "Mucho gusto."
+        phrase_en: "Nice to meet you."
+        context: introductions
+
+  - id: numeros
+    name: "Números del 1 al 10"
+    level: A1
+    category: vocabulario
+    description: "Numbers from 1 to 10 in Spanish"
+    vocabulary:
+      - id: vocab_uno
+        word_es: "uno"
+        word_en: "one"
+        pos: numeral
+        example_es: "Tengo uno."
+      - id: vocab_dos
+        word_es: "dos"
+        word_en: "two"
+        pos: numeral
+        example_es: "Son las dos."
+      - id: vocab_tres
+        word_es: "tres"
+        word_en: "three"
+        pos: numeral
+        example_es: "Hay tres gatos."
+
+  - id: ser_estar
+    name: "Ser y Estar presente"
+    level: A1
+    category: gramatica
+    description: "Present tense of ser and estar"
+    requires:
+      - saludos
+    grammar_rules:
+      - id: rule_ser
+        name: "Conjugación de ser"
+        explanation_es: "Ser se usa para características permanentes: yo soy, tú eres, él/ella es, nosotros somos, ellos son."
+        explanation_en: "Ser is used for permanent characteristics: yo soy, tú eres, él/ella es, nosotros somos, ellos son."
+        pattern: "ser + adjective/noun"
+      - id: rule_estar
+        name: "Conjugación de estar"
+        explanation_es: "Estar se usa para estados temporales y ubicación: yo estoy, tú estás, él/ella está, nosotros estamos, ellos están."
+        explanation_en: "Estar is used for temporary states and location: yo estoy, tú estás, él/ella está, nosotros estamos, ellos están."
+        pattern: "estar + adjective/location"
+    phrases:
+      - id: phrase_soy_estudiante
+        phrase_es: "Soy estudiante."
+        phrase_en: "I am a student."
+        context: identity
+
+  - id: articulos_genero
+    name: "Artículos y género"
+    level: A1
+    category: gramatica
+    description: "Articles and grammatical gender in Spanish"
+    requires:
+      - saludos
+    grammar_rules:
+      - id: rule_articulos
+        name: "Artículos definidos e indefinidos"
+        explanation_es: "Definidos: el, la, los, las. Indefinidos: un, una, unos, unas. Concuerdan en género y número con el sustantivo."
+        explanation_en: "Definite: el, la, los, las. Indefinite: un, una, unos, unas. They agree in gender and number with the noun."
+        pattern: "article + noun"
+    vocabulary:
+      - id: vocab_el
+        word_es: "el"
+        word_en: "the (masculine)"
+        pos: article
+        example_es: "El libro es grande."
+      - id: vocab_la
+        word_es: "la"
+        word_en: "the (feminine)"
+        pos: article
+        example_es: "La casa es bonita."
+
+relations:
+  - from: ser_estar
+    to: articulos_genero
+    type: RELATED_TO
+    strength: 0.6
+  - from: saludos
+    to: numeros
+    type: RELATED_TO
+    strength: 0.3

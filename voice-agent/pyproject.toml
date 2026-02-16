@@ -19,4 +19,5 @@ dependencies = [
     "uvicorn>=0.32.0",
     "websockets>=14.0",
     "numpy>=1.26.0",
+    "fastmcp>=2.13",
 ]

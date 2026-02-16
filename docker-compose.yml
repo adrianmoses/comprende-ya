@@ -1,3 +1,20 @@
-# Placeholder for Phase 4 — Docker Compose orchestration
-# See NEXT_STEPS.md for the deployment roadmap.
-services: {}
+services:
+  age:
+    image: apache/age
+    container_name: comprende-ya-age
+    environment:
+      POSTGRES_USER: comprende
+      POSTGRES_PASSWORD: comprende_dev
+      POSTGRES_DB: comprende_ya
+    ports:
+      - "5455:5432"
+    volumes:
+      - age_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comprende -d comprende_ya"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  age_data:

@@ -78,16 +78,16 @@ Tracks each learner's journey through the curriculum:
 
 ### Checklist
 
-- [ ] Set up `mcp-server/` with Python (FastMCP or similar)
-- [ ] PostgreSQL schema: nodes table, edges table, temporal columns
-- [ ] Seed script for curriculum subgraph (A1-level Spanish to start)
-- [ ] Implement `get_next_topics` with prerequisite-aware traversal
-- [ ] Implement `record_attempt` with timestamp + result storage
-- [ ] Implement `get_learner_profile` aggregation
-- [ ] Implement `query_curriculum` with filtering
-- [ ] Implement `get_session_context` for LLM prompt assembly
-- [ ] Unit tests for graph traversal and spaced-repetition logic
-- [ ] Wire MCP server into voice agent's LLM prompt pipeline
+- [x] Set up `mcp-server/` with Python (FastMCP v2)
+- [x] PostgreSQL + Apache AGE: graph schema with vertex/edge labels, SR relational table
+- [x] Seed script for curriculum subgraph (A1-level Spanish: 4 topics)
+- [x] Implement `get_next_topics` with prerequisite-aware traversal
+- [x] Implement `record_attempt` with timestamp + result storage + SR updates
+- [x] Implement `get_learner_profile` aggregation
+- [x] Implement `query_curriculum` with filtering
+- [x] Implement `get_session_context` for LLM prompt assembly
+- [x] Unit tests for spaced-repetition logic, graph traversal, and tool integration
+- [x] Wire MCP server into voice agent's LLM prompt pipeline
 
 ---
 
