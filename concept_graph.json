@@ -1,0 +1,1387 @@
+{
+  "metadata": {
+    "version": "0.1.0",
+    "target_levels": [
+      "B2",
+      "C1"
+    ],
+    "source": "PCIC + DELE B2 specs + Kwiziq/Lawless Spanish",
+    "total_concepts": 53,
+    "layers": {
+      "grammar": 31,
+      "discourse": 10,
+      "lexical": 7,
+      "comprehension": 5
+    }
+  },
+  "concepts": [
+    {
+      "id": "subjunctive_present_forms",
+      "label": "Present subjunctive conjugation",
+      "description": "Regular and irregular forms of the presente de subjuntivo",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "subjunctive_imperfect_forms"
+      ],
+      "assessment_signals": [
+        "conjugates_regular_correctly",
+        "conjugates_irregular_correctly",
+        "identifies_subjunctive_vs_indicative_forms"
+      ],
+      "decay_rate": "slow",
+      "typical_difficulty": 0.3,
+      "tags": [
+        "subjunctive",
+        "conjugation",
+        "foundational"
+      ]
+    },
+    {
+      "id": "subjunctive_desire",
+      "label": "Subjunctive with verbs of desire/influence",
+      "description": "Querer que, pedir que, recomendar que, sugerir que + subjuntivo",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_emotion",
+        "subjunctive_impersonal"
+      ],
+      "assessment_signals": [
+        "produces_correctly_in_free_speech",
+        "recognizes_in_listening",
+        "distinguishes_from_indicative"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "subjunctive",
+        "triggers"
+      ]
+    },
+    {
+      "id": "subjunctive_emotion",
+      "label": "Subjunctive with verbs of emotion",
+      "description": "Me alegra que, me molesta que, es una pena que + subjuntivo",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_desire",
+        "subjunctive_impersonal"
+      ],
+      "assessment_signals": [
+        "produces_correctly_in_free_speech",
+        "recognizes_in_listening",
+        "uses_varied_emotion_triggers"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "subjunctive",
+        "triggers"
+      ]
+    },
+    {
+      "id": "subjunctive_doubt_denial",
+      "label": "Subjunctive with doubt and denial",
+      "description": "No creo que, dudo que, no es cierto que + subjuntivo. Contrast with indicative in affirmative certainty.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_desire",
+        "subjunctive_impersonal"
+      ],
+      "assessment_signals": [
+        "produces_correctly_in_free_speech",
+        "distinguishes_affirmative_vs_negative_triggers",
+        "handles_creer_que_polarity_switch"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "subjunctive",
+        "triggers",
+        "indicative_contrast"
+      ]
+    },
+    {
+      "id": "subjunctive_impersonal",
+      "label": "Subjunctive with impersonal expressions",
+      "description": "Es importante que, es posible que, es necesario que + subjuntivo. Es evidente que + indicativo.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_doubt_denial"
+      ],
+      "assessment_signals": [
+        "produces_correctly_in_free_speech",
+        "distinguishes_certainty_vs_judgment_triggers"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "subjunctive",
+        "triggers"
+      ]
+    },
+    {
+      "id": "subjunctive_temporal_clauses",
+      "label": "Subjunctive in temporal clauses (future reference)",
+      "description": "Cuando + subjuntivo for future, antes de que + subjuntivo always, después de que, hasta que, en cuanto, tan pronto como",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_purpose_clauses",
+        "subjunctive_concessive"
+      ],
+      "assessment_signals": [
+        "uses_cuando_subjunctive_for_future",
+        "uses_antes_de_que_consistently",
+        "distinguishes_temporal_indicative_vs_subjunctive"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "subjunctive",
+        "temporal",
+        "subordinate_clauses"
+      ]
+    },
+    {
+      "id": "subjunctive_purpose_clauses",
+      "label": "Subjunctive in purpose clauses",
+      "description": "Para que, con el fin de que, a fin de que, con vistas a que + subjuntivo",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_temporal_clauses"
+      ],
+      "assessment_signals": [
+        "produces_para_que_subjunctive",
+        "uses_varied_purpose_connectors"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "subjunctive",
+        "purpose",
+        "subordinate_clauses"
+      ]
+    },
+    {
+      "id": "subjunctive_concessive",
+      "label": "Aunque + indicative vs subjunctive",
+      "description": "Aunque + indicativo (known fact) vs aunque + subjuntivo (hypothetical/conceded). Also: a pesar de que, por mucho que, por más que.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms",
+        "subjunctive_imperfect_forms"
+      ],
+      "related": [
+        "subjunctive_temporal_clauses",
+        "discourse_concession"
+      ],
+      "assessment_signals": [
+        "distinguishes_aunque_indicative_vs_subjunctive",
+        "uses_por_mucho_que_correctly",
+        "produces_in_argumentation"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.65,
+      "tags": [
+        "subjunctive",
+        "concessive",
+        "indicative_contrast",
+        "advanced"
+      ]
+    },
+    {
+      "id": "subjunctive_relative_clauses",
+      "label": "Subjunctive in relative clauses",
+      "description": "Busco a alguien que sepa... (unknown/nonexistent antecedent) vs Conozco a alguien que sabe... (known antecedent)",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "subjunctive_doubt_denial"
+      ],
+      "assessment_signals": [
+        "distinguishes_known_vs_unknown_antecedent",
+        "produces_in_descriptions_and_requests"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "subjunctive",
+        "relative_clauses"
+      ]
+    },
+    {
+      "id": "subjunctive_imperfect_forms",
+      "label": "Imperfect subjunctive conjugation",
+      "description": "Forms of the pretérito imperfecto de subjuntivo (-ra/-se). Regular and irregular.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms"
+      ],
+      "related": [
+        "conditional_second",
+        "conditional_third"
+      ],
+      "assessment_signals": [
+        "conjugates_regular_ra_form",
+        "conjugates_irregular_forms",
+        "recognizes_se_form_in_reading"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "subjunctive",
+        "conjugation",
+        "past"
+      ]
+    },
+    {
+      "id": "subjunctive_perfect_forms",
+      "label": "Perfect subjunctive tenses",
+      "description": "Pretérito perfecto de subjuntivo (haya + participio) and pluscuamperfecto de subjuntivo (hubiera/hubiese + participio)",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "subjunctive_present_forms",
+        "subjunctive_imperfect_forms"
+      ],
+      "related": [
+        "conditional_third"
+      ],
+      "assessment_signals": [
+        "uses_haya_participle_for_recent_past",
+        "uses_hubiera_for_unrealized_past"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.65,
+      "tags": [
+        "subjunctive",
+        "conjugation",
+        "compound_tenses"
+      ]
+    },
+    {
+      "id": "subjunctive_como_si",
+      "label": "Como si + imperfect/pluperfect subjunctive",
+      "description": "Expressing 'as if' with como si + imperfecto/pluscuamperfecto de subjuntivo",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_imperfect_forms"
+      ],
+      "related": [
+        "subjunctive_concessive"
+      ],
+      "assessment_signals": [
+        "produces_como_si_correctly",
+        "selects_correct_tense_after_como_si"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "subjunctive",
+        "manner_clauses"
+      ]
+    },
+    {
+      "id": "conditional_simple_forms",
+      "label": "Conditional simple conjugation",
+      "description": "Forms of the condicional simple. Regular and irregular stems.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "conditional_perfect_forms"
+      ],
+      "assessment_signals": [
+        "conjugates_regular_correctly",
+        "conjugates_irregular_stems"
+      ],
+      "decay_rate": "slow",
+      "typical_difficulty": 0.3,
+      "tags": [
+        "conditional",
+        "conjugation",
+        "foundational"
+      ]
+    },
+    {
+      "id": "conditional_perfect_forms",
+      "label": "Conditional perfect conjugation",
+      "description": "Condicional compuesto: habría + participio",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "conditional_simple_forms"
+      ],
+      "related": [
+        "conditional_third"
+      ],
+      "assessment_signals": [
+        "forms_habria_participle_correctly"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "conditional",
+        "conjugation",
+        "compound_tenses"
+      ]
+    },
+    {
+      "id": "conditional_first",
+      "label": "First conditional (real/possible)",
+      "description": "Si + presente de indicativo + futuro/presente/imperativo. Real or likely conditions.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "conditional_second"
+      ],
+      "assessment_signals": [
+        "produces_si_present_future_correctly",
+        "uses_imperative_in_result_clause"
+      ],
+      "decay_rate": "slow",
+      "typical_difficulty": 0.25,
+      "tags": [
+        "conditional",
+        "si_clauses"
+      ]
+    },
+    {
+      "id": "conditional_second",
+      "label": "Second conditional (hypothetical present/future)",
+      "description": "Si + imperfecto de subjuntivo + condicional simple. Unlikely or imaginary situations.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "subjunctive_imperfect_forms",
+        "conditional_simple_forms"
+      ],
+      "related": [
+        "conditional_first",
+        "conditional_third"
+      ],
+      "assessment_signals": [
+        "produces_si_impsubj_conditional",
+        "uses_for_hypothetical_situations",
+        "avoids_mixing_tenses"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "conditional",
+        "si_clauses",
+        "hypothesis"
+      ]
+    },
+    {
+      "id": "conditional_third",
+      "label": "Third conditional (impossible past)",
+      "description": "Si + pluscuamperfecto de subjuntivo + condicional compuesto / pluscuamperfecto de subjuntivo. Unrealized past.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "subjunctive_perfect_forms",
+        "conditional_perfect_forms"
+      ],
+      "related": [
+        "conditional_second",
+        "conditional_mixed"
+      ],
+      "assessment_signals": [
+        "produces_si_plupsubj_condperf",
+        "uses_for_past_regret_or_speculation"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.7,
+      "tags": [
+        "conditional",
+        "si_clauses",
+        "past",
+        "advanced"
+      ]
+    },
+    {
+      "id": "conditional_mixed",
+      "label": "Mixed conditionals",
+      "description": "Mixing second and third conditional: Si hubiera estudiado (past), tendría (present). Si fuera (present), habría ido (past).",
+      "layer": "grammar",
+      "cefr_range": [
+        "C1"
+      ],
+      "prerequisites": [
+        "conditional_second",
+        "conditional_third"
+      ],
+      "related": [],
+      "assessment_signals": [
+        "produces_mixed_conditionals_correctly",
+        "selects_appropriate_tense_combinations"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.8,
+      "tags": [
+        "conditional",
+        "si_clauses",
+        "advanced"
+      ]
+    },
+    {
+      "id": "reported_speech_present",
+      "label": "Reported speech (present frame)",
+      "description": "Dice que + indicativo. Reporting in real-time with no tense shift.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "reported_speech_past"
+      ],
+      "assessment_signals": [
+        "transforms_direct_to_indirect_present",
+        "adjusts_pronouns_and_deictics"
+      ],
+      "decay_rate": "slow",
+      "typical_difficulty": 0.3,
+      "tags": [
+        "reported_speech"
+      ]
+    },
+    {
+      "id": "reported_speech_past",
+      "label": "Reported speech (past frame with tense backshift)",
+      "description": "Dijo que + tense backshift. Present→imperfect, preterite→pluperfect, future→conditional.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "reported_speech_present",
+        "subjunctive_imperfect_forms"
+      ],
+      "related": [
+        "reported_speech_commands"
+      ],
+      "assessment_signals": [
+        "applies_tense_backshift_correctly",
+        "adjusts_temporal_deictics",
+        "handles_no_change_cases"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "reported_speech",
+        "tense_system"
+      ]
+    },
+    {
+      "id": "reported_speech_commands",
+      "label": "Reported speech with commands and requests",
+      "description": "Imperative → imperfecto de subjuntivo in reported speech. Me pidió que fuera, le dijo que no hablara.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "reported_speech_past",
+        "subjunctive_imperfect_forms"
+      ],
+      "related": [
+        "subjunctive_desire"
+      ],
+      "assessment_signals": [
+        "transforms_imperative_to_subjunctive",
+        "uses_reporting_verbs_correctly"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "reported_speech",
+        "subjunctive"
+      ]
+    },
+    {
+      "id": "passive_ser",
+      "label": "Passive voice with ser + participle",
+      "description": "La ley fue aprobada por el parlamento. Passive with ser in various tenses.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "passive_se",
+        "impersonal_se"
+      ],
+      "assessment_signals": [
+        "forms_passive_ser_correctly",
+        "uses_por_agent_appropriately",
+        "recognizes_in_formal_texts"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "passive",
+        "formal_register"
+      ]
+    },
+    {
+      "id": "passive_se",
+      "label": "Pasiva refleja (se + verb)",
+      "description": "Se venden pisos. Se han tomado medidas. Passive meaning with se.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "passive_ser",
+        "impersonal_se"
+      ],
+      "assessment_signals": [
+        "distinguishes_from_impersonal_se",
+        "uses_correct_verb_agreement",
+        "produces_in_formal_contexts"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "passive",
+        "se_constructions"
+      ]
+    },
+    {
+      "id": "impersonal_se",
+      "label": "Impersonal se constructions",
+      "description": "Se dice que, se cree que, se vive bien aquí. Also impersonal with 3rd person plural.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "passive_se"
+      ],
+      "assessment_signals": [
+        "distinguishes_impersonal_from_passive_se",
+        "uses_in_generalizations"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "impersonal",
+        "se_constructions"
+      ]
+    },
+    {
+      "id": "relative_clauses_que_quien",
+      "label": "Relative clauses with que, quien, donde",
+      "description": "Basic relative pronouns. Restrictive vs non-restrictive clauses.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B1",
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "relative_clauses_prepositions",
+        "relative_clauses_cuyo"
+      ],
+      "assessment_signals": [
+        "uses_que_for_restrictive",
+        "uses_quien_for_people_after_preposition"
+      ],
+      "decay_rate": "slow",
+      "typical_difficulty": 0.3,
+      "tags": [
+        "relative_clauses"
+      ]
+    },
+    {
+      "id": "relative_clauses_prepositions",
+      "label": "Relative clauses with prepositions",
+      "description": "El/la/los/las que, el/la cual after prepositions. La empresa en la que trabajo.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [
+        "relative_clauses_que_quien"
+      ],
+      "related": [
+        "relative_clauses_cuyo"
+      ],
+      "assessment_signals": [
+        "uses_article_que_after_prepositions",
+        "selects_correct_article_gender_number"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "relative_clauses",
+        "prepositions"
+      ]
+    },
+    {
+      "id": "relative_clauses_cuyo",
+      "label": "Relative pronoun cuyo/a/os/as",
+      "description": "Possessive relative. El autor cuya obra... Agrees with possessed noun.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "relative_clauses_prepositions"
+      ],
+      "related": [],
+      "assessment_signals": [
+        "uses_cuyo_with_correct_agreement",
+        "produces_in_formal_writing"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.65,
+      "tags": [
+        "relative_clauses",
+        "formal_register",
+        "advanced"
+      ]
+    },
+    {
+      "id": "perifrasis_aspectuales",
+      "label": "Aspectual periphrases",
+      "description": "Dejar de + inf, seguir/continuar + gerundio, acabar de + inf, ponerse a + inf, volver a + inf, llevar + gerundio",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "perifrasis_modales"
+      ],
+      "assessment_signals": [
+        "uses_varied_periphrases_naturally",
+        "selects_appropriate_perifrasis_for_meaning"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "periphrases",
+        "aspect"
+      ]
+    },
+    {
+      "id": "perifrasis_modales",
+      "label": "Modal periphrases",
+      "description": "Deber (de) + inf (obligation vs assumption), tener que, haber de, poder, soler",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "perifrasis_aspectuales"
+      ],
+      "assessment_signals": [
+        "distinguishes_deber_vs_deber_de",
+        "uses_haber_de_in_formal_register"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "periphrases",
+        "modality"
+      ]
+    },
+    {
+      "id": "ser_estar_advanced",
+      "label": "Advanced ser/estar distinctions",
+      "description": "Adjectives that change meaning with ser/estar (listo, malo, abierto, etc). Ser/estar + past participle.",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "passive_ser"
+      ],
+      "assessment_signals": [
+        "distinguishes_meaning_shifts",
+        "uses_estar_participle_for_resultant_state"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "ser_estar",
+        "nuance"
+      ]
+    },
+    {
+      "id": "por_para_advanced",
+      "label": "Advanced por/para usage",
+      "description": "Nuanced distinctions: por (cause, exchange, means, distribution) vs para (purpose, recipient, deadline, comparison)",
+      "layer": "grammar",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [],
+      "assessment_signals": [
+        "selects_correctly_in_ambiguous_contexts",
+        "uses_in_idiomatic_expressions"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "prepositions",
+        "nuance"
+      ]
+    },
+    {
+      "id": "discourse_addition",
+      "label": "Additive discourse markers",
+      "description": "Además, también, encima, es más, de hecho, asimismo, por otra parte",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_contrast",
+        "discourse_consequence"
+      ],
+      "assessment_signals": [
+        "uses_beyond_también_y_además",
+        "places_markers_correctly_in_sentence",
+        "selects_register_appropriate_marker"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "connectors",
+        "cohesion"
+      ]
+    },
+    {
+      "id": "discourse_contrast",
+      "label": "Contrastive discourse markers",
+      "description": "Sin embargo, no obstante, en cambio, por el contrario, ahora bien, con todo",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_addition",
+        "subjunctive_concessive"
+      ],
+      "assessment_signals": [
+        "uses_beyond_pero",
+        "distinguishes_sin_embargo_vs_en_cambio",
+        "uses_in_written_argumentation"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "connectors",
+        "cohesion",
+        "argumentation"
+      ]
+    },
+    {
+      "id": "discourse_consequence",
+      "label": "Consecutive/result discourse markers",
+      "description": "Por lo tanto, así que, por consiguiente, en consecuencia, de ahí que (+ subjuntivo), de modo que",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_cause",
+        "discourse_addition"
+      ],
+      "assessment_signals": [
+        "uses_formal_consecutive_markers",
+        "uses_de_ahí_que_with_subjunctive",
+        "varies_markers_in_extended_text"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "connectors",
+        "cohesion",
+        "argumentation"
+      ]
+    },
+    {
+      "id": "discourse_cause",
+      "label": "Causal discourse markers",
+      "description": "Porque, ya que, puesto que, dado que, debido a que, gracias a que, por culpa de que. No porque + subjuntivo.",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_consequence"
+      ],
+      "assessment_signals": [
+        "uses_beyond_porque",
+        "handles_no_porque_subjunctive",
+        "selects_formal_vs_informal_markers"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "connectors",
+        "cohesion"
+      ]
+    },
+    {
+      "id": "discourse_concession",
+      "label": "Concessive discourse markers",
+      "description": "Aunque, a pesar de (que), pese a (que), aun así, con todo, si bien",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "subjunctive_concessive"
+      ],
+      "related": [
+        "discourse_contrast"
+      ],
+      "assessment_signals": [
+        "uses_a_pesar_de_que_correctly",
+        "uses_si_bien_in_formal_writing",
+        "manages_indicative_subjunctive_choice"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "connectors",
+        "cohesion",
+        "advanced"
+      ]
+    },
+    {
+      "id": "discourse_reformulation",
+      "label": "Reformulating and exemplifying markers",
+      "description": "Es decir, o sea, dicho de otro modo, en otras palabras, por ejemplo, esto es",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_addition"
+      ],
+      "assessment_signals": [
+        "uses_to_clarify_complex_ideas",
+        "uses_in_oral_presentations"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.35,
+      "tags": [
+        "connectors",
+        "cohesion"
+      ]
+    },
+    {
+      "id": "discourse_structuring",
+      "label": "Text structuring markers",
+      "description": "En primer lugar, por un lado...por otro, para empezar, en resumen, en conclusión, por último",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_reformulation"
+      ],
+      "assessment_signals": [
+        "structures_oral_presentations",
+        "structures_written_essays",
+        "uses_varied_markers_per_section"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.35,
+      "tags": [
+        "connectors",
+        "cohesion",
+        "organization"
+      ]
+    },
+    {
+      "id": "register_formal_informal",
+      "label": "Register shifting: formal ↔ informal",
+      "description": "Recognizing and producing appropriate register. Tú/usted choice, lexical formality, hedging, sentence complexity.",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_hedging"
+      ],
+      "assessment_signals": [
+        "adjusts_register_for_context",
+        "uses_usted_appropriately",
+        "shifts_lexical_formality"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "register",
+        "pragmatics",
+        "C1_bridge"
+      ]
+    },
+    {
+      "id": "discourse_hedging",
+      "label": "Hedging and softening",
+      "description": "Attenuating assertions: parece que, puede que, quizás, diría que, en cierto modo, hasta cierto punto",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "register_formal_informal",
+        "discourse_opinion"
+      ],
+      "assessment_signals": [
+        "uses_hedging_in_argumentation",
+        "varies_hedging_strategies",
+        "softens_disagreement_appropriately"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "pragmatics",
+        "modality",
+        "C1_bridge"
+      ]
+    },
+    {
+      "id": "discourse_opinion",
+      "label": "Expressing and defending opinions",
+      "description": "Structures for opinions: en mi opinión, a mi parecer, considero que, estoy convencido de que. Supporting arguments with evidence.",
+      "layer": "discourse",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_hedging",
+        "discourse_structuring"
+      ],
+      "assessment_signals": [
+        "uses_varied_opinion_structures",
+        "supports_opinions_with_reasoning",
+        "responds_to_counterarguments"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "argumentation",
+        "DELE_oral"
+      ]
+    },
+    {
+      "id": "lex_academic_argumentation",
+      "label": "Academic argumentation vocabulary",
+      "description": "Plantear, sostener, refutar, argüir, fundamentar, respaldar, cuestionar, abordar",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_opinion",
+        "discourse_structuring"
+      ],
+      "assessment_signals": [
+        "uses_in_written_essays",
+        "uses_in_oral_debate",
+        "distinguishes_register_of_synonyms"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "vocabulary",
+        "academic",
+        "DELE_written"
+      ]
+    },
+    {
+      "id": "lex_colloquial_spain",
+      "label": "Colloquial expressions (Peninsular Spanish)",
+      "description": "Fillers (o sea, bueno, pues), slang (mola, currar, flipar, tío/a), diminutives, colloquial intensifiers",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "register_formal_informal"
+      ],
+      "assessment_signals": [
+        "recognizes_in_natural_conversation",
+        "uses_fillers_naturally",
+        "understands_slang_in_media"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "vocabulary",
+        "colloquial",
+        "spain",
+        "comprehension"
+      ]
+    },
+    {
+      "id": "lex_media_politics",
+      "label": "Media and politics vocabulary",
+      "description": "Elecciones, gobierno, parlamento, aprobar una ley, dimisión, crisis, polémica, manifestación",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_academic_argumentation"
+      ],
+      "assessment_signals": [
+        "comprehends_news_articles",
+        "discusses_political_topics_fluently"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.45,
+      "tags": [
+        "vocabulary",
+        "thematic",
+        "news"
+      ]
+    },
+    {
+      "id": "lex_environment_society",
+      "label": "Environment and society vocabulary",
+      "description": "Cambio climático, contaminación, reciclaje, energías renovables, desigualdad, inmigración, desempleo",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_media_politics"
+      ],
+      "assessment_signals": [
+        "discusses_environmental_topics",
+        "uses_in_DELE_oral_task"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "vocabulary",
+        "thematic",
+        "DELE_oral"
+      ]
+    },
+    {
+      "id": "lex_health_wellbeing",
+      "label": "Health and wellbeing vocabulary",
+      "description": "Bienestar, estrés, alimentación, hábitos saludables, trastorno, prevención, diagnóstico",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_environment_society"
+      ],
+      "assessment_signals": [
+        "discusses_health_topics",
+        "understands_health_articles"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "vocabulary",
+        "thematic",
+        "DELE_oral"
+      ]
+    },
+    {
+      "id": "lex_technology_education",
+      "label": "Technology and education vocabulary",
+      "description": "Redes sociales, inteligencia artificial, formación, asignatura, competencias, brecha digital",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_media_politics"
+      ],
+      "assessment_signals": [
+        "discusses_technology_topics",
+        "debates_education_issues"
+      ],
+      "decay_rate": "fast",
+      "typical_difficulty": 0.4,
+      "tags": [
+        "vocabulary",
+        "thematic",
+        "DELE_oral"
+      ]
+    },
+    {
+      "id": "lex_word_formation",
+      "label": "Word formation: prefixes and suffixes",
+      "description": "Prefixes: des-, in-, anti-, re-. Suffixes: -ción, -dad, -mente, -izar, -oso. Nominalization strategies.",
+      "layer": "lexical",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_academic_argumentation"
+      ],
+      "assessment_signals": [
+        "deduces_meaning_from_morphology",
+        "produces_derived_forms",
+        "uses_nominalization_in_formal_writing"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.5,
+      "tags": [
+        "vocabulary",
+        "morphology",
+        "strategy"
+      ]
+    },
+    {
+      "id": "comp_inference",
+      "label": "Inferring implied meaning",
+      "description": "Understanding what is NOT said explicitly: irony, understatement, implicit criticism, reading between the lines",
+      "layer": "comprehension",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "comp_humor_irony",
+        "discourse_hedging"
+      ],
+      "assessment_signals": [
+        "identifies_implicit_meaning_in_texts",
+        "recognizes_understatement",
+        "interprets_tone_in_listening"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.65,
+      "tags": [
+        "comprehension",
+        "pragmatics",
+        "C1_bridge"
+      ]
+    },
+    {
+      "id": "comp_humor_irony",
+      "label": "Understanding humor and irony",
+      "description": "Sarcasm, wordplay, cultural humor, double meanings in Spanish",
+      "layer": "comprehension",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [
+        "comp_inference"
+      ],
+      "related": [
+        "lex_colloquial_spain"
+      ],
+      "assessment_signals": [
+        "recognizes_sarcasm_in_conversation",
+        "understands_wordplay",
+        "gets_cultural_humor_references"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.7,
+      "tags": [
+        "comprehension",
+        "pragmatics",
+        "culture"
+      ]
+    },
+    {
+      "id": "comp_listening_native_speed",
+      "label": "Comprehension at natural speech speed",
+      "description": "Understanding native speakers at natural pace, with false starts, fillers, overlapping speech",
+      "layer": "comprehension",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "lex_colloquial_spain",
+        "comp_inference"
+      ],
+      "assessment_signals": [
+        "follows_podcast_without_pausing",
+        "catches_main_points_in_news_broadcast",
+        "understands_conversational_speech"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "comprehension",
+        "listening",
+        "fluency"
+      ]
+    },
+    {
+      "id": "comp_reading_complex_texts",
+      "label": "Reading complex authentic texts",
+      "description": "Newspaper editorials, literary excerpts, academic abstracts. Identifying argument structure and rhetorical strategies.",
+      "layer": "comprehension",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "discourse_structuring",
+        "lex_academic_argumentation"
+      ],
+      "assessment_signals": [
+        "identifies_main_argument_in_editorial",
+        "recognizes_rhetorical_strategies",
+        "distinguishes_fact_from_opinion"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.6,
+      "tags": [
+        "comprehension",
+        "reading",
+        "DELE"
+      ]
+    },
+    {
+      "id": "comp_cultural_references",
+      "label": "Spanish cultural references and pragmatics",
+      "description": "Understanding references to Spanish culture, history, society. Politeness norms, social conventions, taboo topics.",
+      "layer": "comprehension",
+      "cefr_range": [
+        "B2",
+        "C1"
+      ],
+      "prerequisites": [],
+      "related": [
+        "register_formal_informal",
+        "lex_colloquial_spain"
+      ],
+      "assessment_signals": [
+        "recognizes_cultural_allusions",
+        "navigates_social_conventions",
+        "understands_politeness_norms"
+      ],
+      "decay_rate": "medium",
+      "typical_difficulty": 0.55,
+      "tags": [
+        "comprehension",
+        "culture",
+        "pragmatics"
+      ]
+    }
+  ]
+}

@@ -26,7 +26,7 @@ Reorganize into a monorepo and stand up the web client.
 
 ```
 comprende-ya/
-├── mcp-server/          # KG + tools (Phase 2)
+├── comprende-ya-mcp/          # KG + tools (Phase 2)
 ├── voice-agent/         # Current pipeline, moved here
 ├── webapp/              # Next.js/React client
 ├── shared/              # Types, utilities
@@ -78,7 +78,7 @@ Tracks each learner's journey through the curriculum:
 
 ### Checklist
 
-- [x] Set up `mcp-server/` with Python (FastMCP v2)
+- [x] Set up `comprende-ya-mcp/` with Python (FastMCP v2)
 - [x] PostgreSQL + Apache AGE: graph schema with vertex/edge labels, SR relational table
 - [x] Seed script for curriculum subgraph (A1-level Spanish: 4 topics)
 - [x] Implement `get_next_topics` with prerequisite-aware traversal
@@ -116,13 +116,14 @@ Simplified node model: everything teachable is a **Concept**. No separate `Topic
 
 ### Checklist — 3A
 
-- [ ] Design B2 concept taxonomy (A1→B2 progression, ~100–200 concept nodes)
-- [ ] Define `mastery_signals` per concept (recognition, production, spontaneous use)
-- [ ] Author `b2_seed.yaml` with concepts, prerequisites, relations, contrast pairs
-- [ ] New graph schema: drop old labels, create `Concept` and `Context` vertex labels
-- [ ] New seed script consuming the B2 YAML
-- [ ] Validate prerequisite DAG is acyclic
-- [ ] Unit tests for schema + seed integrity
+- [x] Design B2 concept taxonomy (53 concepts in `concept_graph.json`)
+- [x] Define `mastery_signals` per concept (assessment_signals in JSON)
+- [x] Author concept data with prerequisites, relations, contrast pairs (`concept_graph.json`)
+- [x] New graph schema: drop old labels, create `Concept` and `Context` vertex labels
+- [x] New seed script consuming B2 JSON (`b2_seed.py`)
+- [x] Validate prerequisite DAG is acyclic
+- [x] Unit tests for schema + seed integrity
+- [x] Refactored all 5 MCP tools to query `Concept` instead of `Topic`
 
 ### 3B — Learner Model
 
@@ -282,7 +283,7 @@ Package everything for reproducible local and remote deployment.
 ### Checklist
 
 - [ ] `voice-agent/Dockerfile` (CUDA base image, model download on build)
-- [ ] `mcp-server/Dockerfile` (Python + PostgreSQL client)
+- [ ] `comprende-ya-mcp/Dockerfile` (Python + PostgreSQL client)
 - [ ] `webapp/Dockerfile` (Node.js, static export option)
 - [ ] `docker-compose.yml` orchestrating all services + PostgreSQL
 - [ ] Volume mounts for model caching (avoid re-downloading)

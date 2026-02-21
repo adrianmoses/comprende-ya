@@ -34,7 +34,7 @@ async def get_learner_profile(pool, learner_id: str) -> LearnerProfile:
         mastered_rows = await cypher_query(
             conn,
             GRAPH_NAME,
-            f"MATCH (l:Learner {{id: '{learner_id}'}})-[:MASTERED]->(t:Topic) RETURN t",
+            f"MATCH (l:Learner {{id: '{learner_id}'}})-[:MASTERED]->(t:Concept) RETURN t",
         )
         mastered = []
         for m in mastered_rows:
@@ -45,7 +45,7 @@ async def get_learner_profile(pool, learner_id: str) -> LearnerProfile:
         struggled_rows = await cypher_query(
             conn,
             GRAPH_NAME,
-            f"MATCH (l:Learner {{id: '{learner_id}'}})-[:STRUGGLED_WITH]->(t:Topic) RETURN t",
+            f"MATCH (l:Learner {{id: '{learner_id}'}})-[:STRUGGLED_WITH]->(t:Concept) RETURN t",
         )
         struggling = []
         for s in struggled_rows:
@@ -54,7 +54,7 @@ async def get_learner_profile(pool, learner_id: str) -> LearnerProfile:
 
         # Due for review
         row = await conn.execute(
-            "SELECT topic_id FROM spaced_repetition "
+            "SELECT concept_id FROM spaced_repetition "
             "WHERE learner_id = %s AND next_review <= now()",
             (learner_id,),
         )
@@ -62,7 +62,7 @@ async def get_learner_profile(pool, learner_id: str) -> LearnerProfile:
         due_for_review = [r[0] for r in due_rows]
 
         # All topics
-        all_topics = await cypher_query(conn, GRAPH_NAME, "MATCH (t:Topic) RETURN t")
+        all_topics = await cypher_query(conn, GRAPH_NAME, "MATCH (t:Concept) RETURN t")
         all_ids = set()
         for t in all_topics:
             props = t.get("properties", t) if isinstance(t, dict) else t
@@ -71,7 +71,7 @@ async def get_learner_profile(pool, learner_id: str) -> LearnerProfile:
         seen = set(mastered) | set(struggling) | set(due_for_review)
         # Also add topics in SR table but not yet due
         row = await conn.execute(
-            "SELECT topic_id FROM spaced_repetition WHERE learner_id = %s",
+            "SELECT concept_id FROM spaced_repetition WHERE learner_id = %s",
             (learner_id,),
         )
         sr_rows = await row.fetchall()
