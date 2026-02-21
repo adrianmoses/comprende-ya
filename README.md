@@ -9,7 +9,7 @@ comprende-ya/
 ├── voice-agent/        # Python voice pipeline (Whisper + Llama + Piper)
 ├── webapp/             # Next.js web client
 ├── shared/             # Shared TypeScript types & constants
-├── mcp-server/         # Knowledge graph server (Phase 2)
+├── comprende-ya-mcp/   # Knowledge graph MCP server (FastMCP + PostgreSQL/AGE)
 ├── pyproject.toml      # Root uv workspace
 └── docker-compose.yml  # (Phase 4)
 ```

@@ -1,7 +1,7 @@
 [project]
-name = "mcp-server"
+name = "comprende-ya-mcp"
 version = "0.1.0"
-description = "MCP server with knowledge graph for Spanish learning (Phase 2)"
+description = "MCP server with knowledge graph for Spanish learning"
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=2.13",

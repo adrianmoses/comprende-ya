@@ -1,6 +1,6 @@
 """Load YAML curriculum into the AGE graph.
 
-Runnable as: uv run --package mcp-server python -m mcp_server.seed
+Runnable as: uv run --package comprende-ya-mcp python -m mcp_server.seed
 """
 
 from __future__ import annotations

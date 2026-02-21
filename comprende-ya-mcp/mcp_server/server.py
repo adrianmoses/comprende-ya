@@ -1,6 +1,6 @@
 """FastMCP server with tool registration and lifespan DB pool management.
 
-Run: uv run --package mcp-server python -m mcp_server.server
+Run: uv run --package comprende-ya-mcp python -m mcp_server.server
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from fastmcp import Context, FastMCP
 
 from mcp_server.db import create_pool
 from mcp_server.graph_schema import init_schema
-from mcp_server.tools.curriculum import query_curriculum as _query_curriculum
+from mcp_server.tools.concepts import query_concepts as _query_concepts
 from mcp_server.tools.learner import get_learner_profile as _get_learner_profile
 from mcp_server.tools.next_topics import get_next_topics as _get_next_topics
 from mcp_server.tools.record_attempt import record_attempt as _record_attempt
@@ -43,18 +43,18 @@ def _get_pool(ctx: Context) -> Any:
 
 
 @mcp.tool
-async def query_curriculum(
+async def query_concepts(
     ctx: Context,
-    level: str | None = None,
+    cefr_level: str | None = None,
     category: str | None = None,
-    topic_id: str | None = None,
+    concept_id: str | None = None,
 ) -> list[dict]:
-    """Browse the Spanish curriculum. Filter by level, category, or topic_id."""
+    """Browse the Spanish concept graph. Filter by cefr_level, category, or concept_id."""
     pool = _get_pool(ctx)
-    topics = await _query_curriculum(
-        pool, level=level, category=category, topic_id=topic_id
+    concepts = await _query_concepts(
+        pool, cefr_level=cefr_level, category=category, concept_id=concept_id
     )
-    return [t.model_dump() for t in topics]
+    return [c.model_dump() for c in concepts]
 
 
 @mcp.tool
@@ -63,7 +63,7 @@ async def get_next_topics(
     learner_id: str,
     limit: int = 3,
 ) -> list[dict]:
-    """Get recommended next topics for a learner based on SR schedule and prerequisites."""
+    """Get recommended next concepts for a learner based on SR schedule and prerequisites."""
     pool = _get_pool(ctx)
     return await _get_next_topics(pool, learner_id=learner_id, limit=limit)
 
@@ -72,14 +72,18 @@ async def get_next_topics(
 async def record_attempt(
     ctx: Context,
     learner_id: str,
-    topic_id: str,
+    concept_id: str,
     result: str,
     details: str | None = None,
 ) -> dict:
     """Record a learning attempt (correct/incorrect) and update spaced repetition state."""
     pool = _get_pool(ctx)
     attempt = await _record_attempt(
-        pool, learner_id=learner_id, topic_id=topic_id, result=result, details=details
+        pool,
+        learner_id=learner_id,
+        concept_id=concept_id,
+        result=result,
+        details=details,
     )
     return attempt.model_dump()
 
@@ -89,7 +93,7 @@ async def get_learner_profile(
     ctx: Context,
     learner_id: str,
 ) -> dict:
-    """Get a learner's profile: mastered, struggling, due, and unseen topics."""
+    """Get a learner's profile: mastered, struggling, due, and unseen concepts."""
     pool = _get_pool(ctx)
     profile = await _get_learner_profile(pool, learner_id=learner_id)
     return profile.model_dump()
@@ -100,7 +104,7 @@ async def get_session_context(
     ctx: Context,
     session_id: str,
 ) -> dict:
-    """Get session context for LLM prompt enrichment with curriculum content and learner summary."""
+    """Get session context for LLM prompt enrichment with concept content and learner summary."""
     pool = _get_pool(ctx)
     session_ctx = await _get_session_context(pool, session_id=session_id)
     return session_ctx.model_dump()

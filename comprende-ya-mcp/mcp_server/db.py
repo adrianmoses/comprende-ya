@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 from psycopg_pool import AsyncConnectionPool
@@ -20,8 +21,10 @@ def _db_conninfo() -> str:
 
 async def _configure_connection(conn) -> None:
     """Run on every connection checkout: load AGE and set search_path."""
+    await conn.set_autocommit(True)
     await conn.execute("LOAD 'age'")
     await conn.execute('SET search_path = ag_catalog, "$user", public')
+    await conn.set_autocommit(False)
 
 
 async def create_pool(min_size: int = 1, max_size: int = 5) -> AsyncConnectionPool:
@@ -40,7 +43,7 @@ def _interpolate_params(query: str, params: dict) -> str:
 
     AGE doesn't support parameterized Cypher natively. Escapes backslashes
     then quotes to prevent breakout. Processes keys longest-first to avoid
-    partial substitution (e.g. $topic_id before $topic).
+    partial substitution (e.g. $concept_id before $concept).
     """
     for key in sorted(params, key=len, reverse=True):
         value = params[key]
@@ -55,9 +58,15 @@ def _interpolate_params(query: str, params: dict) -> str:
 
 
 def _parse_agtype(raw: Any) -> Any:
-    """Parse a single agtype value from AGE."""
+    """Parse a single agtype value from AGE.
+
+    AGE returns agtype strings with type suffixes like ::vertex, ::edge,
+    ::integer, etc. Strip those before JSON parsing.
+    """
     if isinstance(raw, str):
-        return json.loads(raw)
+        # Strip AGE type suffixes (::vertex, ::edge, ::path, ::integer, etc.)
+        cleaned = re.sub(r"::\w+$", "", raw)
+        return json.loads(cleaned)
     return raw
 
 

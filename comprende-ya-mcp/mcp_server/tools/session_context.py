@@ -5,7 +5,7 @@ from __future__ import annotations
 from mcp_server.db import cypher_query
 from mcp_server.graph_schema import GRAPH_NAME
 from mcp_server.models import SessionContext
-from mcp_server.tools.curriculum import query_curriculum
+from mcp_server.tools.concepts import query_concepts
 from mcp_server.tools.learner import get_learner_profile
 
 
@@ -15,7 +15,7 @@ async def get_session_context(
 ) -> SessionContext:
     """Get session context for LLM prompt enrichment.
 
-    Fetches session details, learner profile, and topic content
+    Fetches session details, learner profile, and concept content
     to build a suggested_prompt_additions string for the LLM.
     """
     async with pool.connection() as conn:
@@ -44,15 +44,15 @@ async def get_session_context(
     # Get learner profile
     profile = await get_learner_profile(pool, learner_id)
 
-    # Get topic content for due/struggling topics
-    topic_ids = profile.due_for_review + profile.struggling
-    if not topic_ids:
-        topic_ids = profile.unseen[:2]
+    # Get concept content for due/struggling concepts
+    concept_ids = profile.due_for_review + profile.struggling
+    if not concept_ids:
+        concept_ids = profile.unseen[:2]
 
-    topic_content = []
-    for tid in topic_ids[:3]:
-        topics = await query_curriculum(pool, topic_id=tid)
-        topic_content.extend(topics)
+    concept_content = []
+    for cid in concept_ids[:3]:
+        concepts = await query_concepts(pool, concept_id=cid)
+        concept_content.extend(concepts)
 
     # Build learner summary
     summary_parts = [f"Learner: {profile.name} (id: {profile.learner_id})"]
@@ -70,7 +70,7 @@ async def get_session_context(
     prompt_parts = []
     if mode == "structured":
         prompt_parts.append(
-            "This is a structured lesson. Focus on the topics listed below."
+            "This is a structured lesson. Focus on the concepts listed below."
         )
     else:
         prompt_parts.append(
@@ -80,34 +80,22 @@ async def get_session_context(
     if profile.struggling:
         prompt_parts.append(
             f"The learner is struggling with: {', '.join(profile.struggling)}. "
-            "Provide extra practice and encouragement on these topics."
+            "Provide extra practice and encouragement on these concepts."
         )
 
-    for tc in topic_content:
-        prompt_parts.append(f"\n--- Topic: {tc.name} ({tc.level}) ---")
-        if tc.vocabulary:
-            vocab_strs = [
-                f"  {v.get('word_es', '')} = {v.get('word_en', '')}"
-                for v in tc.vocabulary
-            ]
-            prompt_parts.append("Vocabulary:\n" + "\n".join(vocab_strs))
-        if tc.grammar_rules:
-            for g in tc.grammar_rules:
-                prompt_parts.append(
-                    f"Grammar: {g.get('name', '')} — {g.get('explanation_es', '')}"
-                )
-        if tc.phrases:
-            phrase_strs = [
-                f"  {p.get('phrase_es', '')} = {p.get('phrase_en', '')}"
-                for p in tc.phrases
-            ]
-            prompt_parts.append("Phrases:\n" + "\n".join(phrase_strs))
+    for cc in concept_content:
+        prompt_parts.append(f"\n--- Concept: {cc.name} ({cc.cefr_level}) ---")
+        prompt_parts.append(f"Description: {cc.description}")
+        if cc.mastery_signals:
+            prompt_parts.append(f"Mastery signals: {', '.join(cc.mastery_signals)}")
+        if cc.contrasts_with:
+            prompt_parts.append(f"Contrasts with: {', '.join(cc.contrasts_with)}")
 
     suggested_prompt = "\n".join(prompt_parts)
 
     return SessionContext(
         session_id=session_id,
         learner_summary=learner_summary,
-        topic_content=topic_content,
+        concept_content=concept_content,
         suggested_prompt_additions=suggested_prompt,
     )

@@ -49,9 +49,9 @@ jobs:
         with:
           version: "latest"
       - run: uv sync --all-packages --no-install-workspace
-      - run: uv run ruff check mcp-server/
-      - run: uv run ruff format --check mcp-server/
-      - run: uv run mypy mcp-server/mcp_server/ --ignore-missing-imports
+      - run: uv run ruff check comprende-ya-mcp/
+      - run: uv run ruff format --check comprende-ya-mcp/
+      - run: uv run mypy comprende-ya-mcp/mcp_server/ --ignore-missing-imports
 
   mcp-server-test:
     name: MCP Server Unit Tests
@@ -62,7 +62,7 @@ jobs:
         with:
           version: "latest"
       - run: uv sync --all-packages --no-install-workspace
-      - run: SKIP_DB_TESTS=1 uv run --package mcp-server pytest mcp-server/tests/test_spaced_repetition.py -v
+      - run: SKIP_DB_TESTS=1 uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/test_spaced_repetition.py -v
 
   import-check:
     name: Python Import Check

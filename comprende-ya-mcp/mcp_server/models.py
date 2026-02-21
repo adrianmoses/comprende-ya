@@ -5,15 +5,19 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
-class TopicSummary(BaseModel):
+class ConceptSummary(BaseModel):
     id: str
     name: str
-    level: str
-    category: str
     description: str = ""
-    vocabulary: list[dict] = []
-    grammar_rules: list[dict] = []
-    phrases: list[dict] = []
+    cefr_level: str = ""
+    category: str = ""
+    decay_rate: str = ""
+    typical_difficulty: float = 0.0
+    mastery_signals: list[str] = []
+    tags: list[str] = []
+    prerequisites: list[str] = []
+    related: list[str] = []
+    contrasts_with: list[str] = []
 
 
 class LearnerProfile(BaseModel):
@@ -27,7 +31,7 @@ class LearnerProfile(BaseModel):
 
 class AttemptResult(BaseModel):
     learner_id: str
-    topic_id: str
+    concept_id: str
     result: str  # "correct" or "incorrect"
     new_interval_days: float
     new_ease_factor: float
@@ -37,5 +41,5 @@ class AttemptResult(BaseModel):
 class SessionContext(BaseModel):
     session_id: str
     learner_summary: str
-    topic_content: list[TopicSummary] = []
+    concept_content: list[ConceptSummary] = []
     suggested_prompt_additions: str = ""

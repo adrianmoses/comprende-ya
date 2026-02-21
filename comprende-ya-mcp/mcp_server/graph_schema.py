@@ -11,10 +11,8 @@ logger = logging.getLogger(__name__)
 GRAPH_NAME = "comprende_ya"
 
 VERTEX_LABELS = [
-    "Topic",
-    "Vocabulary",
-    "GrammarRule",
-    "Phrase",
+    "Concept",
+    "Context",
     "Learner",
     "Session",
     "Attempt",
@@ -22,8 +20,8 @@ VERTEX_LABELS = [
 
 EDGE_LABELS = [
     "REQUIRES",
-    "CONTAINS",
     "RELATED_TO",
+    "CONTRASTS_WITH",
     "MASTERED",
     "STRUGGLED_WITH",
     "HAS_SESSION",
@@ -78,16 +76,42 @@ async def init_schema(pool: AsyncConnectionPool) -> None:
                 logger.info("Created edge label '%s'", label)
 
         # Spaced repetition relational table
+        await conn.execute("DROP TABLE IF EXISTS spaced_repetition")
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS spaced_repetition (
                 learner_id TEXT NOT NULL,
-                topic_id TEXT NOT NULL,
+                concept_id TEXT NOT NULL,
                 ease_factor REAL DEFAULT 2.5,
                 interval_days REAL DEFAULT 1.0,
                 repetitions INTEGER DEFAULT 0,
                 next_review TIMESTAMPTZ DEFAULT now(),
                 last_attempt TIMESTAMPTZ,
-                PRIMARY KEY (learner_id, topic_id)
+                PRIMARY KEY (learner_id, concept_id)
             )
         """)
         logger.info("Schema initialization complete")
+
+
+async def drop_graph(pool: AsyncConnectionPool) -> None:
+    """Drop and recreate the graph (dev/test use). Also truncates SR table."""
+    async with pool.connection() as conn:
+        await conn.execute("CREATE EXTENSION IF NOT EXISTS age")
+        await conn.execute("LOAD 'age'")
+        await conn.execute('SET search_path = ag_catalog, "$user", public')
+
+        row = await conn.execute(
+            "SELECT count(*) FROM ag_catalog.ag_graph WHERE name = %s",
+            (GRAPH_NAME,),
+        )
+        result = await row.fetchone()
+        count = result[0] if result else 0
+        if count > 0:
+            await conn.execute(f"SELECT drop_graph('{GRAPH_NAME}', true)")
+            logger.info("Dropped graph '%s'", GRAPH_NAME)
+
+        try:
+            await conn.execute("TRUNCATE spaced_repetition")
+            logger.info("Truncated spaced_repetition table")
+        except Exception:
+            await conn.rollback()
+            logger.debug("spaced_repetition table not found, skipping truncate")

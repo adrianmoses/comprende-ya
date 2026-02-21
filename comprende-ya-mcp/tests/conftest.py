@@ -7,9 +7,9 @@ import os
 import pytest
 import pytest_asyncio
 
+from mcp_server.b2_seed import seed_b2_concepts
 from mcp_server.db import create_pool
-from mcp_server.graph_schema import GRAPH_NAME, init_schema
-from mcp_server.seed import seed_curriculum
+from mcp_server.graph_schema import GRAPH_NAME, drop_graph, init_schema
 
 # Skip all tests if AGE_HOST is not set and not running locally
 SKIP_DB = os.getenv("SKIP_DB_TESTS", "").lower() in ("1", "true", "yes")
@@ -32,9 +32,10 @@ async def pool():
 
 @pytest_asyncio.fixture(scope="session")
 async def seeded_pool(pool):
-    """Pool with schema initialized and curriculum seeded."""
+    """Pool with schema initialized and B2 concepts seeded."""
+    await drop_graph(pool)
     await init_schema(pool)
-    await seed_curriculum()
+    await seed_b2_concepts(pool=pool)
     yield pool
 
 

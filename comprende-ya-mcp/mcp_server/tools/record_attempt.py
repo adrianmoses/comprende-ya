@@ -13,7 +13,7 @@ from mcp_server.spaced_repetition import SRState, update_sr
 async def record_attempt(
     pool,
     learner_id: str,
-    topic_id: str,
+    concept_id: str,
     result: str,
     details: str | None = None,
 ) -> AttemptResult:
@@ -22,7 +22,7 @@ async def record_attempt(
     Args:
         pool: Database connection pool.
         learner_id: The learner's id.
-        topic_id: The topic being practiced.
+        concept_id: The topic being practiced.
         result: "correct" or "incorrect".
         details: Optional details about the attempt.
     """
@@ -43,12 +43,12 @@ async def record_attempt(
             )
 
         # Create Attempt vertex
-        attempt_id = f"attempt_{learner_id}_{topic_id}_{int(now.timestamp())}"
+        attempt_id = f"attempt_{learner_id}_{concept_id}_{int(now.timestamp())}"
         await cypher_query(
             conn,
             GRAPH_NAME,
             f"CREATE (:Attempt {{id: '{attempt_id}', learner_id: '{learner_id}', "
-            f"topic_id: '{topic_id}', result: '{result}', "
+            f"concept_id: '{concept_id}', result: '{result}', "
             f"timestamp: '{now.isoformat()}'}})",
         )
 
@@ -60,19 +60,19 @@ async def record_attempt(
             f"CREATE (l)-[:ATTEMPTED]->(a)",
         )
 
-        # Create ATTEMPT_OF edge (Attempt -> Topic)
+        # Create ATTEMPT_OF edge (Attempt -> Concept)
         await cypher_query(
             conn,
             GRAPH_NAME,
-            f"MATCH (a:Attempt {{id: '{attempt_id}'}}), (t:Topic {{id: '{topic_id}'}}) "
+            f"MATCH (a:Attempt {{id: '{attempt_id}'}}), (t:Concept {{id: '{concept_id}'}}) "
             f"CREATE (a)-[:ATTEMPT_OF]->(t)",
         )
 
         # Get current SR state from relational table
         row = await conn.execute(
             "SELECT ease_factor, interval_days, repetitions, next_review, last_attempt "
-            "FROM spaced_repetition WHERE learner_id = %s AND topic_id = %s",
-            (learner_id, topic_id),
+            "FROM spaced_repetition WHERE learner_id = %s AND concept_id = %s",
+            (learner_id, concept_id),
         )
         existing = await row.fetchone()
 
@@ -94,9 +94,9 @@ async def record_attempt(
         await conn.execute(
             """
             INSERT INTO spaced_repetition
-                (learner_id, topic_id, ease_factor, interval_days, repetitions, next_review, last_attempt)
+                (learner_id, concept_id, ease_factor, interval_days, repetitions, next_review, last_attempt)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (learner_id, topic_id) DO UPDATE SET
+            ON CONFLICT (learner_id, concept_id) DO UPDATE SET
                 ease_factor = EXCLUDED.ease_factor,
                 interval_days = EXCLUDED.interval_days,
                 repetitions = EXCLUDED.repetitions,
@@ -105,7 +105,7 @@ async def record_attempt(
             """,
             (
                 learner_id,
-                topic_id,
+                concept_id,
                 new_state.ease_factor,
                 new_state.interval_days,
                 new_state.repetitions,
@@ -125,7 +125,7 @@ async def record_attempt(
                 GRAPH_NAME,
                 f"MATCH (l:Learner {{id: '{learner_id}'}})"
                 f"-[r:STRUGGLED_WITH]->"
-                f"(t:Topic {{id: '{topic_id}'}}) DELETE r",
+                f"(t:Concept {{id: '{concept_id}'}}) DELETE r",
             )
             # Create or update MASTERED edge
             mastered = await cypher_query(
@@ -133,7 +133,7 @@ async def record_attempt(
                 GRAPH_NAME,
                 f"MATCH (l:Learner {{id: '{learner_id}'}})"
                 f"-[r:MASTERED]->"
-                f"(t:Topic {{id: '{topic_id}'}}) RETURN r",
+                f"(t:Concept {{id: '{concept_id}'}}) RETURN r",
             )
             if mastered:
                 await cypher_query(
@@ -141,7 +141,7 @@ async def record_attempt(
                     GRAPH_NAME,
                     f"MATCH (l:Learner {{id: '{learner_id}'}})"
                     f"-[r:MASTERED]->"
-                    f"(t:Topic {{id: '{topic_id}'}}) "
+                    f"(t:Concept {{id: '{concept_id}'}}) "
                     f"SET r.ease_factor = {new_state.ease_factor}, "
                     f"r.interval_days = {new_state.interval_days}, "
                     f"r.repetitions = {new_state.repetitions}, "
@@ -151,7 +151,7 @@ async def record_attempt(
                 await cypher_query(
                     conn,
                     GRAPH_NAME,
-                    f"MATCH (l:Learner {{id: '{learner_id}'}}), (t:Topic {{id: '{topic_id}'}}) "
+                    f"MATCH (l:Learner {{id: '{learner_id}'}}), (t:Concept {{id: '{concept_id}'}}) "
                     f"CREATE (l)-[:MASTERED {{ease_factor: {new_state.ease_factor}, "
                     f"interval_days: {new_state.interval_days}, "
                     f"repetitions: {new_state.repetitions}, "
@@ -163,7 +163,7 @@ async def record_attempt(
                 GRAPH_NAME,
                 f"MATCH (l:Learner {{id: '{learner_id}'}})"
                 f"-[r:STRUGGLED_WITH]->"
-                f"(t:Topic {{id: '{topic_id}'}}) RETURN r",
+                f"(t:Concept {{id: '{concept_id}'}}) RETURN r",
             )
             if struggled:
                 await cypher_query(
@@ -171,7 +171,7 @@ async def record_attempt(
                     GRAPH_NAME,
                     f"MATCH (l:Learner {{id: '{learner_id}'}})"
                     f"-[r:STRUGGLED_WITH]->"
-                    f"(t:Topic {{id: '{topic_id}'}}) "
+                    f"(t:Concept {{id: '{concept_id}'}}) "
                     f"SET r.last_attempt = '{now.isoformat()}', "
                     f"r.fail_count = r.fail_count + 1",
                 )
@@ -179,14 +179,14 @@ async def record_attempt(
                 await cypher_query(
                     conn,
                     GRAPH_NAME,
-                    f"MATCH (l:Learner {{id: '{learner_id}'}}), (t:Topic {{id: '{topic_id}'}}) "
+                    f"MATCH (l:Learner {{id: '{learner_id}'}}), (t:Concept {{id: '{concept_id}'}}) "
                     f"CREATE (l)-[:STRUGGLED_WITH {{last_attempt: '{now.isoformat()}', "
                     f"fail_count: 1}}]->(t)",
                 )
 
         return AttemptResult(
             learner_id=learner_id,
-            topic_id=topic_id,
+            concept_id=concept_id,
             result=result,
             new_interval_days=new_state.interval_days,
             new_ease_factor=new_state.ease_factor,

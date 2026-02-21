@@ -31,7 +31,7 @@ async def get_next_topics(
         # 1. Due for review
         row = await conn.execute(
             """
-            SELECT topic_id, next_review, interval_days, ease_factor
+            SELECT concept_id, next_review, interval_days, ease_factor
             FROM spaced_repetition
             WHERE learner_id = %s AND next_review <= now()
             ORDER BY next_review ASC
@@ -40,12 +40,12 @@ async def get_next_topics(
             (learner_id, limit),
         )
         due_rows = await row.fetchall()
-        due_topic_ids = [dr[0] for dr in due_rows]
+        due_concept_ids = [dr[0] for dr in due_rows]
 
-        # Batch-fetch topic details for all due topics
-        if due_topic_ids:
+        # Batch-fetch concept details for all due topics
+        if due_concept_ids:
             all_due_topics = await cypher_query(
-                conn, GRAPH_NAME, "MATCH (t:Topic) RETURN t"
+                conn, GRAPH_NAME, "MATCH (t:Concept) RETURN t"
             )
             topic_name_map = {}
             for t in all_due_topics:
@@ -56,7 +56,7 @@ async def get_next_topics(
                 tid = dr[0]
                 results.append(
                     {
-                        "topic_id": tid,
+                        "concept_id": tid,
                         "name": topic_name_map.get(tid, ""),
                         "reason": "due_for_review",
                         "next_review": str(dr[1]),
@@ -69,19 +69,19 @@ async def get_next_topics(
         # 2. Unseen topics with satisfied prerequisites
         # Get all topic ids the learner has encountered
         row = await conn.execute(
-            "SELECT topic_id FROM spaced_repetition WHERE learner_id = %s",
+            "SELECT concept_id FROM spaced_repetition WHERE learner_id = %s",
             (learner_id,),
         )
         seen_rows = await row.fetchall()
         seen_ids = {r[0] for r in seen_rows}
 
-        # Get all topics and all prerequisite edges in two queries (not N)
-        all_topics = await cypher_query(conn, GRAPH_NAME, "MATCH (t:Topic) RETURN t")
+        # Get all concepts and all prerequisite edges in two queries (not N)
+        all_topics = await cypher_query(conn, GRAPH_NAME, "MATCH (t:Concept) RETURN t")
 
         prereq_rows = await cypher_query(
             conn,
             GRAPH_NAME,
-            "MATCH (t:Topic)-[:REQUIRES]->(p:Topic) RETURN t.id, p.id",
+            "MATCH (t:Concept)-[:REQUIRES]->(p:Concept) RETURN t.id, p.id",
             columns=["tid", "pid"],
         )
         prereqs_by_topic: dict[str, list[str]] = defaultdict(list)
@@ -90,7 +90,7 @@ async def get_next_topics(
 
         # Get mastered topic ids (repetitions > 0 in SR table)
         row = await conn.execute(
-            "SELECT topic_id FROM spaced_repetition "
+            "SELECT concept_id FROM spaced_repetition "
             "WHERE learner_id = %s AND repetitions > 0",
             (learner_id,),
         )
@@ -110,7 +110,7 @@ async def get_next_topics(
             if all(pid in mastered_ids for pid in prereq_ids):
                 results.append(
                     {
-                        "topic_id": tid,
+                        "concept_id": tid,
                         "name": props.get("name", ""),
                         "reason": "new_topic",
                     }
