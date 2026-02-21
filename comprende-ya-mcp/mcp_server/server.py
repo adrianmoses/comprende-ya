@@ -13,11 +13,15 @@ from fastmcp import Context, FastMCP
 
 from mcp_server.db import create_pool
 from mcp_server.graph_schema import init_schema
+from mcp_server.models import EvidenceEvent
 from mcp_server.tools.concepts import query_concepts as _query_concepts
+from mcp_server.tools.confusion_pairs import get_confusion_pairs as _get_confusion_pairs
+from mcp_server.tools.effective_contexts import (
+    get_effective_contexts as _get_effective_contexts,
+)
+from mcp_server.tools.ingest_evidence import ingest_evidence as _ingest_evidence
 from mcp_server.tools.learner import get_learner_profile as _get_learner_profile
-from mcp_server.tools.next_topics import get_next_topics as _get_next_topics
-from mcp_server.tools.record_attempt import record_attempt as _record_attempt
-from mcp_server.tools.session_context import get_session_context as _get_session_context
+from mcp_server.tools.learner_state import get_learner_state as _get_learner_state
 
 
 @asynccontextmanager
@@ -58,34 +62,34 @@ async def query_concepts(
 
 
 @mcp.tool
-async def get_next_topics(
+async def ingest_evidence(
     ctx: Context,
     learner_id: str,
-    limit: int = 3,
-) -> list[dict]:
-    """Get recommended next concepts for a learner based on SR schedule and prerequisites."""
+    events: list[dict],
+) -> dict:
+    """Ingest a batch of evidence events and update the learner model.
+
+    Each event: {concept_id, signal, outcome, session_id?, context_id?, activity_type?, timestamp?}
+    Signals: produced_correctly, produced_with_errors, recognized, failed_to_produce,
+             failed_to_recognize, self_corrected, confused_with
+    """
     pool = _get_pool(ctx)
-    return await _get_next_topics(pool, learner_id=learner_id, limit=limit)
+    parsed = [EvidenceEvent(**e) for e in events]
+    return await _ingest_evidence(pool, learner_id=learner_id, events=parsed)
 
 
 @mcp.tool
-async def record_attempt(
+async def get_learner_state(
     ctx: Context,
     learner_id: str,
-    concept_id: str,
-    result: str,
-    details: str | None = None,
-) -> dict:
-    """Record a learning attempt (correct/incorrect) and update spaced repetition state."""
+    concept_ids: list[str] | None = None,
+) -> list[dict]:
+    """Get current STUDIES state for a learner, with decay-projected mastery."""
     pool = _get_pool(ctx)
-    attempt = await _record_attempt(
-        pool,
-        learner_id=learner_id,
-        concept_id=concept_id,
-        result=result,
-        details=details,
+    states = await _get_learner_state(
+        pool, learner_id=learner_id, concept_ids=concept_ids
     )
-    return attempt.model_dump()
+    return [s.model_dump() for s in states]
 
 
 @mcp.tool
@@ -93,21 +97,32 @@ async def get_learner_profile(
     ctx: Context,
     learner_id: str,
 ) -> dict:
-    """Get a learner's profile: mastered, struggling, due, and unseen concepts."""
+    """Get a learner's profile: mastered, progressing, decaying, unseen concepts + confusion pairs."""
     pool = _get_pool(ctx)
     profile = await _get_learner_profile(pool, learner_id=learner_id)
     return profile.model_dump()
 
 
 @mcp.tool
-async def get_session_context(
+async def get_confusion_pairs(
     ctx: Context,
-    session_id: str,
-) -> dict:
-    """Get session context for LLM prompt enrichment with concept content and learner summary."""
+    learner_id: str,
+) -> list[dict]:
+    """Get confusion pairs (co-failing contrasting concepts) for a learner."""
     pool = _get_pool(ctx)
-    session_ctx = await _get_session_context(pool, session_id=session_id)
-    return session_ctx.model_dump()
+    pairs = await _get_confusion_pairs(pool, learner_id=learner_id)
+    return [p.model_dump() for p in pairs]
+
+
+@mcp.tool
+async def get_effective_contexts(
+    ctx: Context,
+    learner_id: str,
+) -> list[dict]:
+    """Get effective learning contexts for a learner (populated in Phase 3C)."""
+    pool = _get_pool(ctx)
+    contexts = await _get_effective_contexts(pool, learner_id=learner_id)
+    return [c.model_dump() for c in contexts]
 
 
 if __name__ == "__main__":

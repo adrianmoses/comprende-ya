@@ -20,26 +20,47 @@ class ConceptSummary(BaseModel):
     contrasts_with: list[str] = []
 
 
+class EvidenceEvent(BaseModel):
+    concept_id: str
+    signal: str  # produced_correctly, produced_with_errors, recognized, etc.
+    outcome: float  # 0.0-1.0
+    session_id: str | None = None
+    context_id: str | None = None
+    activity_type: str | None = None
+    timestamp: str | None = None  # ISO 8601; server fills if omitted
+
+
+class StudiesState(BaseModel):
+    concept_id: str
+    mastery: float = 0.0
+    projected_mastery: float = 0.0  # mastery after decay projection to now
+    confidence: float = 0.0
+    half_life_days: float = 1.0
+    practice_count: int = 0
+    last_evidence_at: str | None = None
+    last_outcome: float | None = None
+    trend: str = "plateau"
+    first_seen_at: str | None = None
+
+
+class ConfusionPair(BaseModel):
+    concept_a: str
+    concept_b: str
+    evidence_count: int = 0
+    last_seen_at: str | None = None
+
+
+class EffectiveContext(BaseModel):
+    context_id: str
+    effectiveness: float = 0.0
+    sample_count: int = 0
+
+
 class LearnerProfile(BaseModel):
     learner_id: str
-    name: str
     mastered: list[str] = []
-    struggling: list[str] = []
-    due_for_review: list[str] = []
+    progressing: list[str] = []
+    decaying: list[str] = []
     unseen: list[str] = []
-
-
-class AttemptResult(BaseModel):
-    learner_id: str
-    concept_id: str
-    result: str  # "correct" or "incorrect"
-    new_interval_days: float
-    new_ease_factor: float
-    next_review: str
-
-
-class SessionContext(BaseModel):
-    session_id: str
-    learner_summary: str
-    concept_content: list[ConceptSummary] = []
-    suggested_prompt_additions: str = ""
+    confusion_pairs: list[ConfusionPair] = []
+    total_evidence_count: int = 0
