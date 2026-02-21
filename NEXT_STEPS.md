@@ -159,15 +159,15 @@ The Learner Model is the **sole writer** to dynamic graph state. It reads the co
 
 ### Checklist — 3B
 
-- [ ] Define `EvidenceEvent` schema (signal types, outcome scale, context reference)
-- [ ] Implement `STUDIES` edge recomputation logic (replaces SM-2 relational table)
-- [ ] Implement decay projection at query time (no background jobs)
-- [ ] Implement `CONFUSES_WITH` detection from `CONTRASTS_WITH` + error patterns
-- [ ] Implement `RESPONDS_WELL_TO` tracking
-- [ ] Implement cross-concept propagation for `RELATED_TO` neighbors
-- [ ] Implement all 5 Learner Model MCP tools
-- [ ] Drop old SR relational table — all state lives on graph edges
-- [ ] Unit tests for mastery recomputation, decay, confusion detection
+- [x] Define `EvidenceEvent` schema (signal types, outcome scale, context reference)
+- [x] Implement `STUDIES` edge recomputation logic (replaces SM-2 relational table)
+- [x] Implement decay projection at query time (no background jobs)
+- [x] Implement `CONFUSES_WITH` detection from `CONTRASTS_WITH` + error patterns
+- [x] Implement `RESPONDS_WELL_TO` tracking
+- [x] Implement cross-concept propagation for `RELATED_TO` neighbors
+- [x] Implement all 5 Learner Model MCP tools
+- [x] Drop old SR relational table — all state lives on graph edges
+- [x] Unit tests for mastery recomputation, decay, confusion detection
 
 ### 3C — Assessment Layer (LLM-as-Judge)
 

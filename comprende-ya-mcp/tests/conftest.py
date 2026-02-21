@@ -44,15 +44,12 @@ async def clean_learner(pool):
     """Clean up test learner data after each test."""
     learner_id = "test_learner"
     yield learner_id
-    # Cleanup: remove test learner SR data
+    # Cleanup: remove all dynamic edges and learner node
     async with pool.connection() as conn:
-        await conn.execute(
-            "DELETE FROM spaced_repetition WHERE learner_id = %s", (learner_id,)
-        )
-        # Remove test learner graph nodes
-        try:
-            from mcp_server.db import cypher_query
+        from mcp_server.db import cypher_query
 
+        try:
+            # Remove all edges from/to learner (STUDIES, EVIDENCE, CONFUSES_WITH, RESPONDS_WELL_TO)
             await cypher_query(
                 conn,
                 GRAPH_NAME,
@@ -62,11 +59,6 @@ async def clean_learner(pool):
                 conn,
                 GRAPH_NAME,
                 f"MATCH (l:Learner {{id: '{learner_id}'}}) DELETE l",
-            )
-            await cypher_query(
-                conn,
-                GRAPH_NAME,
-                f"MATCH (a:Attempt {{learner_id: '{learner_id}'}}) DETACH DELETE a",
             )
         except Exception:
             pass

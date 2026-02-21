@@ -63,10 +63,10 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 
 **MCP Server**: FastMCP with PostgreSQL + Apache AGE (Cypher graph queries)
 - Concept graph: 53 B2-level Concept nodes with REQUIRES (DAG), RELATED_TO, CONTRASTS_WITH edges
-- Context nodes: label created, population deferred to Phase 3B
-- Learner tracking: Attempts, Sessions, mastery/struggle edges
-- Spaced repetition: SM-2 algorithm in relational side table
-- 5 tools: query_concepts, get_next_topics, record_attempt, get_learner_profile, get_session_context
+- Context nodes: label created, population deferred to Phase 3C
+- Learner model: STUDIES edges (half-life decay mastery), EVIDENCE edges (immutable event log), CONFUSES_WITH, RESPONDS_WELL_TO
+- No relational tables — all state lives on graph edges
+- 6 tools: query_concepts, ingest_evidence, get_learner_state, get_learner_profile, get_confusion_pairs, get_effective_contexts
 - Every connection requires `LOAD 'age'` — handled by pool configure callback
 
 **Webapp**: Next.js 15 with App Router
@@ -110,8 +110,13 @@ vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that req
 - `comprende-ya-mcp/mcp_server/graph_schema.py`: AGE graph schema initialization + drop_graph helper
 - `comprende-ya-mcp/mcp_server/b2_seed.py`: B2 concept graph seeder (reads concept_graph.json)
 - `comprende-ya-mcp/mcp_server/seed.py`: Legacy A1 YAML curriculum seeder
-- `comprende-ya-mcp/mcp_server/spaced_repetition.py`: Pure SM-2 logic
+- `comprende-ya-mcp/mcp_server/learner_model.py`: Pure learner model logic (half-life decay, EMA mastery, trend, confidence, confusion detection)
 - `comprende-ya-mcp/mcp_server/tools/concepts.py`: query_concepts tool (browse concept graph)
+- `comprende-ya-mcp/mcp_server/tools/ingest_evidence.py`: ingest_evidence tool (batch write evidence, recompute STUDIES)
+- `comprende-ya-mcp/mcp_server/tools/learner_state.py`: get_learner_state tool (STUDIES edges with decay projection)
+- `comprende-ya-mcp/mcp_server/tools/learner.py`: get_learner_profile tool (mastered/progressing/decaying/unseen)
+- `comprende-ya-mcp/mcp_server/tools/confusion_pairs.py`: get_confusion_pairs tool (CONFUSES_WITH edges)
+- `comprende-ya-mcp/mcp_server/tools/effective_contexts.py`: get_effective_contexts tool (RESPONDS_WELL_TO edges)
 - `concept_graph.json`: B2 concept taxonomy (53 concepts, source of truth)
 - `voice-agent/mcp_client.py`: MCP client wrapper for voice agent
 - `NEXT_STEPS.md`: Development roadmap / TODO checklist

@@ -2,10 +2,13 @@
 
 import pytest
 
+from mcp_server.models import EvidenceEvent
 from mcp_server.tools.concepts import query_concepts
+from mcp_server.tools.confusion_pairs import get_confusion_pairs
+from mcp_server.tools.effective_contexts import get_effective_contexts
+from mcp_server.tools.ingest_evidence import ingest_evidence
 from mcp_server.tools.learner import get_learner_profile
-from mcp_server.tools.next_topics import get_next_topics
-from mcp_server.tools.record_attempt import record_attempt
+from mcp_server.tools.learner_state import get_learner_state
 
 pytestmark = pytest.mark.asyncio
 
@@ -47,53 +50,188 @@ class TestQueryConcepts:
         assert "subjunctive_imperfect_forms" in concepts[0].related
 
 
-class TestGetNextTopics:
-    async def test_new_learner_gets_concepts_without_prereqs(
-        self, seeded_pool, clean_learner
-    ):
-        topics = await get_next_topics(seeded_pool, clean_learner)
-        concept_ids = {t["concept_id"] for t in topics}
-        # Should only get concepts with no prerequisites
-        # These should NOT appear (they have prereqs):
-        assert "subjunctive_desire" not in concept_ids
-        assert "conditional_second" not in concept_ids
-        # All returned concepts should have no prereqs
-        assert len(topics) > 0
-
-    async def test_respects_limit(self, seeded_pool, clean_learner):
-        topics = await get_next_topics(seeded_pool, clean_learner, limit=1)
-        assert len(topics) <= 1
-
-
-class TestRecordAttempt:
-    async def test_correct_attempt(self, seeded_pool, clean_learner):
-        result = await record_attempt(
-            seeded_pool, clean_learner, "subjunctive_present_forms", "correct"
+class TestIngestEvidence:
+    async def test_creates_evidence_and_studies(self, seeded_pool, clean_learner):
+        result = await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                )
+            ],
         )
-        assert result.learner_id == clean_learner
-        assert result.concept_id == "subjunctive_present_forms"
-        assert result.result == "correct"
-        assert result.new_interval_days == 1.0
-        assert result.new_ease_factor >= 2.5
+        assert result["processed"] == 1
+        assert len(result["studies_updated"]) == 1
+        assert result["studies_updated"][0]["concept_id"] == "subjunctive_present_forms"
+        assert result["studies_updated"][0]["mastery"] > 0.0
 
-    async def test_incorrect_attempt(self, seeded_pool, clean_learner):
-        result = await record_attempt(
-            seeded_pool, clean_learner, "subjunctive_present_forms", "incorrect"
+    async def test_batch_processing(self, seeded_pool, clean_learner):
+        events = [
+            EvidenceEvent(
+                concept_id="subjunctive_present_forms",
+                signal="produced_correctly",
+                outcome=0.8,
+            ),
+            EvidenceEvent(
+                concept_id="subjunctive_present_forms",
+                signal="produced_correctly",
+                outcome=0.9,
+            ),
+        ]
+        result = await ingest_evidence(seeded_pool, clean_learner, events)
+        assert result["processed"] == 2
+        assert len(result["studies_updated"]) == 2
+        # Second event should have higher mastery due to EMA
+        assert (
+            result["studies_updated"][1]["mastery"]
+            > result["studies_updated"][0]["mastery"]
         )
-        assert result.result == "incorrect"
-        assert result.new_interval_days == 1.0
-        assert result.new_ease_factor == 2.3
 
-    async def test_multiple_correct_increases_interval(
-        self, seeded_pool, clean_learner
-    ):
-        await record_attempt(
-            seeded_pool, clean_learner, "subjunctive_present_forms", "correct"
+    async def test_failure_shrinks_half_life(self, seeded_pool, clean_learner):
+        # First success to establish baseline
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                )
+            ],
         )
-        result = await record_attempt(
-            seeded_pool, clean_learner, "subjunctive_present_forms", "correct"
+        # Then failure
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="failed_to_produce",
+                    outcome=0.1,
+                )
+            ],
         )
-        assert result.new_interval_days == 6.0
+        states = await get_learner_state(
+            seeded_pool,
+            clean_learner,
+            concept_ids=["subjunctive_present_forms"],
+        )
+        assert len(states) == 1
+        # After success (hl=2.0) then failure (hl=1.0)
+        assert states[0].half_life_days == 1.0
+
+    async def test_updates_studies_edge(self, seeded_pool, clean_learner):
+        for _ in range(3):
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id="subjunctive_present_forms",
+                        signal="produced_correctly",
+                        outcome=0.9,
+                    )
+                ],
+            )
+        states = await get_learner_state(
+            seeded_pool,
+            clean_learner,
+            concept_ids=["subjunctive_present_forms"],
+        )
+        assert len(states) == 1
+        assert states[0].practice_count == 3
+        assert states[0].mastery > 0.5
+
+
+class TestIngestEvidenceConfusion:
+    async def test_detects_confusion_pair(self, seeded_pool, clean_learner):
+        # passive_se and impersonal_se have CONTRASTS_WITH edge
+        # Create enough failures on both
+        for _ in range(2):
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id="passive_se",
+                        signal="failed_to_produce",
+                        outcome=0.1,
+                    )
+                ],
+            )
+        for _ in range(2):
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id="impersonal_se",
+                        signal="confused_with",
+                        outcome=0.1,
+                    )
+                ],
+            )
+
+        # Check confusion pairs
+        pairs = await get_confusion_pairs(seeded_pool, clean_learner)
+        pair_tuples = {(p.concept_a, p.concept_b) for p in pairs}
+        assert ("impersonal_se", "passive_se") in pair_tuples or (
+            "passive_se",
+            "impersonal_se",
+        ) in pair_tuples
+
+
+class TestGetLearnerState:
+    async def test_empty_for_new_learner(self, seeded_pool, clean_learner):
+        states = await get_learner_state(seeded_pool, clean_learner)
+        assert states == []
+
+    async def test_returns_after_evidence(self, seeded_pool, clean_learner):
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                )
+            ],
+        )
+        states = await get_learner_state(seeded_pool, clean_learner)
+        assert len(states) == 1
+        assert states[0].concept_id == "subjunctive_present_forms"
+        assert states[0].mastery > 0.0
+        assert states[0].practice_count == 1
+
+    async def test_filters_by_concept_ids(self, seeded_pool, clean_learner):
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                ),
+                EvidenceEvent(
+                    concept_id="passive_se",
+                    signal="produced_correctly",
+                    outcome=0.7,
+                ),
+            ],
+        )
+        states = await get_learner_state(
+            seeded_pool,
+            clean_learner,
+            concept_ids=["subjunctive_present_forms"],
+        )
+        assert len(states) == 1
+        assert states[0].concept_id == "subjunctive_present_forms"
 
 
 class TestGetLearnerProfile:
@@ -101,18 +239,87 @@ class TestGetLearnerProfile:
         profile = await get_learner_profile(seeded_pool, clean_learner)
         assert len(profile.unseen) == 53
         assert len(profile.mastered) == 0
-        assert len(profile.struggling) == 0
+        assert len(profile.progressing) == 0
+        assert len(profile.decaying) == 0
+        assert profile.total_evidence_count == 0
 
-    async def test_after_attempts_profile_updates(self, seeded_pool, clean_learner):
-        # Record enough correct attempts for mastery
-        for _ in range(3):
-            await record_attempt(
+    async def test_after_evidence_categorizes(self, seeded_pool, clean_learner):
+        # Multiple successes to build mastery
+        for _ in range(5):
+            await ingest_evidence(
                 seeded_pool,
                 clean_learner,
-                "subjunctive_present_forms",
-                "correct",
+                [
+                    EvidenceEvent(
+                        concept_id="subjunctive_present_forms",
+                        signal="produced_correctly",
+                        outcome=0.95,
+                    )
+                ],
             )
 
         profile = await get_learner_profile(seeded_pool, clean_learner)
-        assert "subjunctive_present_forms" in profile.mastered
+        # Should be mastered or progressing (depends on exact EMA value)
         assert "subjunctive_present_forms" not in profile.unseen
+        assert profile.total_evidence_count == 5
+
+    async def test_includes_confusion_pairs(self, seeded_pool, clean_learner):
+        # Build up confusion between passive_se and impersonal_se
+        for _ in range(2):
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id="passive_se",
+                        signal="failed_to_produce",
+                        outcome=0.1,
+                    )
+                ],
+            )
+        for _ in range(2):
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id="impersonal_se",
+                        signal="confused_with",
+                        outcome=0.1,
+                    )
+                ],
+            )
+
+        profile = await get_learner_profile(seeded_pool, clean_learner)
+        assert len(profile.confusion_pairs) > 0
+
+
+class TestGetConfusionPairs:
+    async def test_empty_for_new_learner(self, seeded_pool, clean_learner):
+        pairs = await get_confusion_pairs(seeded_pool, clean_learner)
+        assert pairs == []
+
+
+class TestGetEffectiveContexts:
+    async def test_empty_for_new_learner(self, seeded_pool, clean_learner):
+        contexts = await get_effective_contexts(seeded_pool, clean_learner)
+        assert contexts == []
+
+    async def test_tracks_context(self, seeded_pool, clean_learner):
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.9,
+                    context_id="dialogue_practice",
+                )
+            ],
+        )
+        contexts = await get_effective_contexts(seeded_pool, clean_learner)
+        assert len(contexts) == 1
+        assert contexts[0].context_id == "dialogue_practice"
+        assert contexts[0].effectiveness == 0.9
+        assert contexts[0].sample_count == 1

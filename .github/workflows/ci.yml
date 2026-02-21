@@ -62,7 +62,7 @@ jobs:
         with:
           version: "latest"
       - run: uv sync --all-packages --no-install-workspace
-      - run: SKIP_DB_TESTS=1 uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/test_spaced_repetition.py -v
+      - run: SKIP_DB_TESTS=1 uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/test_learner_model.py comprende-ya-mcp/tests/test_b2_seed.py -v
 
   import-check:
     name: Python Import Check

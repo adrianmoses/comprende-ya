@@ -27,6 +27,11 @@ async def _configure_connection(conn) -> None:
     await conn.set_autocommit(False)
 
 
+def escape_cypher(value: str) -> str:
+    """Escape a string for safe interpolation into a Cypher literal."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
 async def create_pool(min_size: int = 1, max_size: int = 5) -> AsyncConnectionPool:
     pool = AsyncConnectionPool(
         conninfo=_db_conninfo(),
