@@ -87,13 +87,9 @@ async def get_session_context(
         prompt_parts.append(f"\n--- Concept: {cc.name} ({cc.cefr_level}) ---")
         prompt_parts.append(f"Description: {cc.description}")
         if cc.mastery_signals:
-            prompt_parts.append(
-                f"Mastery signals: {', '.join(cc.mastery_signals)}"
-            )
+            prompt_parts.append(f"Mastery signals: {', '.join(cc.mastery_signals)}")
         if cc.contrasts_with:
-            prompt_parts.append(
-                f"Contrasts with: {', '.join(cc.contrasts_with)}"
-            )
+            prompt_parts.append(f"Contrasts with: {', '.join(cc.contrasts_with)}")
 
     suggested_prompt = "\n".join(prompt_parts)
 

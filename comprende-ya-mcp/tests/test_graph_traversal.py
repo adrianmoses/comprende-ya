@@ -28,7 +28,10 @@ class TestPrerequisiteChains:
                 "MATCH (t:Concept {id: 'conditional_second'})-[:REQUIRES]->(p:Concept) RETURN p",
             )
             prereq_ids = {r.get("properties", r).get("id") for r in results}
-            assert prereq_ids == {"subjunctive_imperfect_forms", "conditional_simple_forms"}
+            assert prereq_ids == {
+                "subjunctive_imperfect_forms",
+                "conditional_simple_forms",
+            }
 
     async def test_concepts_with_no_prerequisites_exist(self, seeded_pool):
         """Several foundational concepts have no prerequisites."""
@@ -138,7 +141,5 @@ class TestContrastsWith:
 class TestConceptCount:
     async def test_total_concept_count(self, seeded_pool):
         async with seeded_pool.connection() as conn:
-            results = await cypher_query(
-                conn, GRAPH_NAME, "MATCH (c:Concept) RETURN c"
-            )
+            results = await cypher_query(conn, GRAPH_NAME, "MATCH (c:Concept) RETURN c")
             assert len(results) == 53

@@ -79,7 +79,11 @@ async def record_attempt(
     """Record a learning attempt (correct/incorrect) and update spaced repetition state."""
     pool = _get_pool(ctx)
     attempt = await _record_attempt(
-        pool, learner_id=learner_id, concept_id=concept_id, result=result, details=details
+        pool,
+        learner_id=learner_id,
+        concept_id=concept_id,
+        result=result,
+        details=details,
     )
     return attempt.model_dump()
 

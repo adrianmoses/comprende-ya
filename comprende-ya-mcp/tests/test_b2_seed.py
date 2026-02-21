@@ -29,7 +29,9 @@ class TestConceptIntegrity:
         required = {"id", "label", "description", "layer", "cefr_range"}
         for c in self.concepts:
             missing = required - set(c.keys())
-            assert not missing, f"Concept '{c.get('id', '?')}' missing fields: {missing}"
+            assert not missing, (
+                f"Concept '{c.get('id', '?')}' missing fields: {missing}"
+            )
 
     def test_no_self_referencing_prerequisites(self):
         for c in self.concepts:

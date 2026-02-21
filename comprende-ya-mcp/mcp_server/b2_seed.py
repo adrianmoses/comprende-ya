@@ -192,9 +192,7 @@ async def seed_b2_concepts(
                     "category": c.get("layer", ""),
                     "decay_rate": c.get("decay_rate", "medium"),
                     "typical_difficulty": c.get("typical_difficulty", 0.5),
-                    "mastery_signals": json.dumps(
-                        c.get("assessment_signals", [])
-                    ),
+                    "mastery_signals": json.dumps(c.get("assessment_signals", [])),
                     "tags": json.dumps(c.get("tags", [])),
                 }
                 await _create_node(conn, "Concept", node_props)
@@ -208,7 +206,9 @@ async def seed_b2_concepts(
 
             # Create RELATED_TO edges (deduplicate: only A→B if A.id < B.id)
             concept_ids = {c["id"] for c in concepts}
-            related_map: dict[str, list[str]] = {c["id"]: c.get("related", []) for c in concepts}
+            related_map: dict[str, list[str]] = {
+                c["id"]: c.get("related", []) for c in concepts
+            }
 
             created_related: set[tuple[str, str]] = set()
             for c in concepts:
@@ -247,9 +247,7 @@ async def seed_b2_concepts(
                 await _create_edge(conn, "Concept", a, "CONTRASTS_WITH", "Concept", b)
                 await _create_edge(conn, "Concept", b, "CONTRASTS_WITH", "Concept", a)
 
-        logger.info(
-            "B2 concept seeding complete: %d concepts", len(concepts)
-        )
+        logger.info("B2 concept seeding complete: %d concepts", len(concepts))
     finally:
         if owns_pool:
             await pool.close()

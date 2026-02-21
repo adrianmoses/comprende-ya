@@ -65,7 +65,7 @@ def _parse_agtype(raw: Any) -> Any:
     """
     if isinstance(raw, str):
         # Strip AGE type suffixes (::vertex, ::edge, ::path, ::integer, etc.)
-        cleaned = re.sub(r'::\w+$', '', raw)
+        cleaned = re.sub(r"::\w+$", "", raw)
         return json.loads(cleaned)
     return raw
 
