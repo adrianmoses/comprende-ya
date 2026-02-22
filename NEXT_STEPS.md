@@ -9,12 +9,15 @@ A Spanish learning app powered by local AI: structured lessons, free conversatio
 The working prototype lives in `voice-agent/`. Sub-1s latency, accurate Spanish transcription.
 
 - [x] STT via Faster-Whisper (`small` model, CUDA, float16)
-- [x] LLM via vLLM (`Llama-3.2-3B-Instruct`, half precision)
+- [x] ~~LLM via vLLM~~ → LLM via llama-server (GGUF Q8_0, OpenAI-compatible API)
 - [x] TTS via Piper CLI (Spanish voice `carlfm-x_low`)
 - [x] WebSocket server (FastAPI, `/ws/voice`)
 - [x] Model warmup on startup
 - [x] Tuned transcription params (beam_size=5, temperature=0.0, initial_prompt)
 - [x] Benchmark tooling (`benchmark.py`, `diagnostic.py`)
+- [x] Migrated from vLLM to llama-server (llama.cpp) — single GGUF server on :8081 shared by voice agent + MCP judge
+- [x] Streaming LLM responses with sentence-level TTS flushing for lower perceived latency
+- [x] Webapp sequential audio queue for multi-frame playback
 
 ---
 
@@ -188,7 +191,7 @@ Converts raw voice agent transcripts into structured `EvidenceEvent`s. Runs a **
 
 - [x] Define interaction event schema (what the voice agent emits)
 - [x] Assessment prompt template: score utterances against concept `mastery_signals`
-- [x] Local LLM integration for assessment (separate from conversation LLM)
+- [x] Local LLM integration for assessment (shared llama-server via OpenAI SDK)
 - [x] Misconception detection logic (pattern matching across recent evidence)
 - [x] Context pattern extraction (register + topic domain from conversation)
 - [x] Pipeline: raw events → LLM judge → `EvidenceEvent[]` → `ingest_evidence()`

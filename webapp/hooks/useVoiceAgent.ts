@@ -25,9 +25,13 @@ export function useVoiceAgent() {
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<ArrayBuffer[]>([]);
 
+  // Playback state for sequential audio queue
+  const playbackCtxRef = useRef<AudioContext | null>(null);
+  const playbackEndTimeRef = useRef<number>(0);
+
   const startRecording = useCallback(async () => {
     try {
-      console.log("startRecording")
+      console.log("startRecording");
       setState((s) => ({ ...s, error: null, recording: true }));
 
       // Set up WebSocket
@@ -35,29 +39,49 @@ export function useVoiceAgent() {
       wsRef.current = ws;
 
       ws.onmessage = async (event) => {
-        console.log("breakpoint 2")
         if (event.data instanceof Blob) {
-          // Binary frame: audio response — play it
+          // Binary frame: audio sentence — queue for sequential playback
           const arrayBuffer = await event.data.arrayBuffer();
           const int16 = new Int16Array(arrayBuffer);
           const float32 = new Float32Array(int16.length);
-          console.log("breakpoint x")
           for (let i = 0; i < int16.length; i++) {
             float32[i] = int16[i] / 32768;
           }
 
-          const playCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
-          const buffer = playCtx.createBuffer(1, float32.length, SAMPLE_RATE);
+          // Lazily create playback context for each turn
+          if (!playbackCtxRef.current) {
+            playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
+            playbackEndTimeRef.current = 0;
+          }
+          const ctx = playbackCtxRef.current;
+
+          const buffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
           buffer.getChannelData(0).set(float32);
-          const source = playCtx.createBufferSource();
+          const source = ctx.createBufferSource();
           source.buffer = buffer;
-          source.connect(playCtx.destination);
-          source.start();
-          source.onended = () => playCtx.close();
+          source.connect(ctx.destination);
+
+          // Schedule after previous audio finishes
+          const startTime = Math.max(ctx.currentTime, playbackEndTimeRef.current);
+          source.start(startTime);
+          playbackEndTimeRef.current = startTime + buffer.duration;
         } else {
-          // Text frame: JSON metrics
+          // Text frame: JSON metrics — turn is complete
           const data: VoiceResponse = JSON.parse(event.data);
           setState((s) => ({ ...s, lastResponse: data, processing: false }));
+
+          // Close playback context after last audio finishes
+          const ctx = playbackCtxRef.current;
+          if (ctx) {
+            const remaining = playbackEndTimeRef.current - ctx.currentTime;
+            if (remaining > 0) {
+              setTimeout(() => ctx.close(), remaining * 1000 + 100);
+            } else {
+              ctx.close();
+            }
+            playbackCtxRef.current = null;
+            playbackEndTimeRef.current = 0;
+          }
         }
       };
 
@@ -98,6 +122,9 @@ export function useVoiceAgent() {
       source.connect(worklet);
       worklet.connect(audioCtx.destination);
     } catch (err) {
+      playbackCtxRef.current?.close();
+      playbackCtxRef.current = null;
+      playbackEndTimeRef.current = 0;
       setState((s) => ({
         ...s,
         recording: false,
@@ -107,7 +134,7 @@ export function useVoiceAgent() {
   }, []);
 
   const stopRecording = useCallback(() => {
-    console.log("stopRecording")
+    console.log("stopRecording");
     setState((s) => ({ ...s, recording: false, processing: true }));
 
     // Stop mic
