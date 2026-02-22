@@ -38,7 +38,20 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
   const playbackEndTimeRef = useRef<number>(0);
 
   const connectWs = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    const existing = wsRef.current;
+    if (
+      existing?.readyState === WebSocket.OPEN ||
+      existing?.readyState === WebSocket.CONNECTING
+    )
+      return;
+
+    // Close any stale connection before creating a new one
+    if (existing) {
+      existing.onmessage = null;
+      existing.onerror = null;
+      existing.onclose = null;
+      existing.close();
+    }
 
     const ws = new WebSocket(VOICE_AGENT_WS_URL);
     wsRef.current = ws;
@@ -127,10 +140,9 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
     try {
       setState((s) => ({ ...s, error: null, recording: true }));
 
-      // Ensure WebSocket is connected
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-        connectWs();
-        // Wait for connection
+      // Ensure WebSocket is connected (connectWs is a no-op if already OPEN/CONNECTING)
+      connectWs();
+      if (wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
         await new Promise<void>((resolve, reject) => {
           const ws = wsRef.current!;
           const onOpen = () => {
@@ -141,12 +153,8 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
             ws.removeEventListener("error", onError);
             reject(new Error("WebSocket connection failed"));
           };
-          if (ws.readyState === WebSocket.OPEN) {
-            resolve();
-          } else {
-            ws.addEventListener("open", onOpen);
-            ws.addEventListener("error", onError);
-          }
+          ws.addEventListener("open", onOpen);
+          ws.addEventListener("error", onError);
         });
       }
 
