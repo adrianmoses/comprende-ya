@@ -2,21 +2,27 @@
 
 import { useCallback, useRef, useState } from "react";
 import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "@/lib/constants";
-import type { VoiceResponse } from "@/lib/voice-protocol";
+import type { ServerMessage, VoiceResponse } from "@/lib/voice-protocol";
 
 export interface VoiceAgentState {
   recording: boolean;
   processing: boolean;
   lastResponse: VoiceResponse | null;
   error: string | null;
+  wsConnected: boolean;
 }
 
-export function useVoiceAgent() {
+interface UseVoiceAgentOptions {
+  onServerMessage?: (msg: ServerMessage) => void;
+}
+
+export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
   const [state, setState] = useState<VoiceAgentState>({
     recording: false,
     processing: false,
     lastResponse: null,
     error: null,
+    wsConnected: false,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -24,51 +30,60 @@ export function useVoiceAgent() {
   const workletRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<ArrayBuffer[]>([]);
+  const onServerMessageRef = useRef(options.onServerMessage);
+  onServerMessageRef.current = options.onServerMessage;
 
   // Playback state for sequential audio queue
   const playbackCtxRef = useRef<AudioContext | null>(null);
   const playbackEndTimeRef = useRef<number>(0);
 
-  const startRecording = useCallback(async () => {
-    try {
-      console.log("startRecording");
-      setState((s) => ({ ...s, error: null, recording: true }));
+  const connectWs = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-      // Set up WebSocket
-      const ws = new WebSocket(VOICE_AGENT_WS_URL);
-      wsRef.current = ws;
+    const ws = new WebSocket(VOICE_AGENT_WS_URL);
+    wsRef.current = ws;
 
-      ws.onmessage = async (event) => {
-        if (event.data instanceof Blob) {
-          // Binary frame: audio sentence — queue for sequential playback
-          const arrayBuffer = await event.data.arrayBuffer();
-          const int16 = new Int16Array(arrayBuffer);
-          const float32 = new Float32Array(int16.length);
-          for (let i = 0; i < int16.length; i++) {
-            float32[i] = int16[i] / 32768;
-          }
+    ws.onopen = () => {
+      setState((s) => ({ ...s, wsConnected: true, error: null }));
+    };
 
-          // Lazily create playback context for each turn
-          if (!playbackCtxRef.current) {
-            playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
-            playbackEndTimeRef.current = 0;
-          }
-          const ctx = playbackCtxRef.current;
+    ws.onmessage = async (event) => {
+      if (event.data instanceof Blob) {
+        // Binary frame: audio sentence — queue for sequential playback
+        const arrayBuffer = await event.data.arrayBuffer();
+        const int16 = new Int16Array(arrayBuffer);
+        const float32 = new Float32Array(int16.length);
+        for (let i = 0; i < int16.length; i++) {
+          float32[i] = int16[i] / 32768;
+        }
 
-          const buffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
-          buffer.getChannelData(0).set(float32);
-          const source = ctx.createBufferSource();
-          source.buffer = buffer;
-          source.connect(ctx.destination);
+        // Lazily create playback context for each turn
+        if (!playbackCtxRef.current) {
+          playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
+          playbackEndTimeRef.current = 0;
+        }
+        const ctx = playbackCtxRef.current;
 
-          // Schedule after previous audio finishes
-          const startTime = Math.max(ctx.currentTime, playbackEndTimeRef.current);
-          source.start(startTime);
-          playbackEndTimeRef.current = startTime + buffer.duration;
-        } else {
-          // Text frame: JSON metrics — turn is complete
-          const data: VoiceResponse = JSON.parse(event.data);
-          setState((s) => ({ ...s, lastResponse: data, processing: false }));
+        const buffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
+        buffer.getChannelData(0).set(float32);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+
+        // Schedule after previous audio finishes
+        const startTime = Math.max(ctx.currentTime, playbackEndTimeRef.current);
+        source.start(startTime);
+        playbackEndTimeRef.current = startTime + buffer.duration;
+      } else {
+        // Text frame: JSON message
+        const data = JSON.parse(event.data) as ServerMessage;
+
+        if (data.type === "metrics") {
+          setState((s) => ({
+            ...s,
+            lastResponse: data as VoiceResponse,
+            processing: false,
+          }));
 
           // Close playback context after last audio finishes
           const ctx = playbackCtxRef.current;
@@ -83,17 +98,57 @@ export function useVoiceAgent() {
             playbackEndTimeRef.current = 0;
           }
         }
-      };
 
-      ws.onerror = () => {
-        setState((s) => ({ ...s, error: "WebSocket connection failed" }));
-      };
+        // Forward all JSON messages to callback
+        onServerMessageRef.current?.(data);
+      }
+    };
 
-      // Wait for WebSocket to open
-      await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => resolve();
-        ws.onerror = () => reject(new Error("WebSocket connection failed"));
-      });
+    ws.onerror = () => {
+      setState((s) => ({
+        ...s,
+        wsConnected: false,
+        error: "WebSocket connection failed",
+      }));
+    };
+
+    ws.onclose = () => {
+      setState((s) => ({ ...s, wsConnected: false }));
+    };
+  }, []);
+
+  const disconnectWs = useCallback(() => {
+    wsRef.current?.close();
+    wsRef.current = null;
+    setState((s) => ({ ...s, wsConnected: false }));
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    try {
+      setState((s) => ({ ...s, error: null, recording: true }));
+
+      // Ensure WebSocket is connected
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        connectWs();
+        // Wait for connection
+        await new Promise<void>((resolve, reject) => {
+          const ws = wsRef.current!;
+          const onOpen = () => {
+            ws.removeEventListener("open", onOpen);
+            resolve();
+          };
+          const onError = () => {
+            ws.removeEventListener("error", onError);
+            reject(new Error("WebSocket connection failed"));
+          };
+          if (ws.readyState === WebSocket.OPEN) {
+            resolve();
+          } else {
+            ws.addEventListener("open", onOpen);
+            ws.addEventListener("error", onError);
+          }
+        });
+      }
 
       // Set up AudioContext + Worklet
       const audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
@@ -131,10 +186,9 @@ export function useVoiceAgent() {
         error: err instanceof Error ? err.message : "Failed to start recording",
       }));
     }
-  }, []);
+  }, [connectWs]);
 
   const stopRecording = useCallback(() => {
-    console.log("stopRecording");
     setState((s) => ({ ...s, recording: false, processing: true }));
 
     // Stop mic
@@ -158,5 +212,11 @@ export function useVoiceAgent() {
     chunksRef.current = [];
   }, []);
 
-  return { ...state, startRecording, stopRecording };
+  return {
+    ...state,
+    startRecording,
+    stopRecording,
+    connectWs,
+    disconnectWs,
+  };
 }

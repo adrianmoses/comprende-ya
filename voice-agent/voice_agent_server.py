@@ -12,7 +12,8 @@ import subprocess
 import tempfile
 import os
 
-from mcp_client import get_next_topics
+import mcp_client
+from session_manager import SessionManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,6 +60,11 @@ logger.info("All models/clients ready!")
 # ============================================
 
 SENTENCE_ENDINGS = re.compile(r"[.!?](?:\s+|$)")
+
+LEARNER_ID = os.getenv("LEARNER_ID", "default_learner")
+
+# Global session manager (one per server instance — single learner for now)
+session_manager = SessionManager(LEARNER_ID)
 
 
 async def transcribe_audio(audio_bytes):
@@ -128,17 +134,11 @@ async def text_to_speech(text):
             os.unlink(tmp_path)
 
 
-async def stream_and_speak(websocket, user_text, curriculum_context):
+async def stream_and_speak(websocket, user_text, system_prompt):
     """Stream LLM tokens, buffer by sentence, flush each sentence to TTS.
 
     Returns (full_response, llm_seconds, tts_seconds).
     """
-    system_msg = (
-        "Eres un profesor de español. Responde con UNA sola frase corta y natural."
-    )
-    if curriculum_context:
-        system_msg += f"\n\n{curriculum_context}"
-
     buffer = ""
     full_response = ""
     tts_total = 0.0
@@ -148,7 +148,7 @@ async def stream_and_speak(websocket, user_text, curriculum_context):
         model=LLAMA_MODEL,
         stream=True,
         messages=[
-            {"role": "system", "content": system_msg},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_text},
         ],
         temperature=0.7,
@@ -186,6 +186,77 @@ async def stream_and_speak(websocket, user_text, curriculum_context):
 
 
 # ============================================
+# REST ENDPOINTS
+# ============================================
+
+
+@app.post("/session/start")
+async def start_session(body: dict | None = None):
+    """Start a new learning session.
+
+    Body: {mode?: "structured"|"free", duration_min?: number}
+    """
+    body = body or {}
+    mode = body.get("mode", "structured")
+    duration_min = body.get("duration_min", 30.0)
+
+    if mode == "structured":
+        plan = await session_manager.start_structured_session(duration_min)
+        return {"status": "ok", "plan": plan}
+    else:
+        result = session_manager.start_free_session()
+        return {"status": "ok", "plan": result}
+
+
+@app.post("/session/end")
+async def end_session():
+    """End the current session."""
+    summary = await session_manager.end_session()
+    return {"status": "ok", "summary": summary}
+
+
+@app.get("/session/state")
+async def get_session_state():
+    """Get current session state."""
+    info = session_manager.get_session_info()
+    if not info:
+        return {"status": "no_session"}
+    return {"status": "ok", **info}
+
+
+@app.get("/learner/profile")
+async def get_learner_profile():
+    """Proxy to MCP get_learner_profile."""
+    profile = await mcp_client.get_learner_profile(LEARNER_ID)
+    return profile
+
+
+@app.get("/learner/state")
+async def get_learner_state(concept_ids: str | None = None):
+    """Proxy to MCP get_learner_state.
+
+    Query param concept_ids: comma-separated concept IDs (optional).
+    """
+    ids = concept_ids.split(",") if concept_ids else None
+    states = await mcp_client.get_learner_state(LEARNER_ID, concept_ids=ids)
+    return states
+
+
+@app.get("/learner/confusions")
+async def get_learner_confusions():
+    """Proxy to MCP get_confusion_pairs."""
+    pairs = await mcp_client.get_confusion_pairs(LEARNER_ID)
+    return pairs
+
+
+@app.get("/learner/contexts")
+async def get_learner_contexts():
+    """Proxy to MCP get_effective_contexts."""
+    contexts = await mcp_client.get_effective_contexts(LEARNER_ID)
+    return contexts
+
+
+# ============================================
 # WEBSOCKET
 # ============================================
 
@@ -209,31 +280,24 @@ class Metrics:
         }
 
 
-LEARNER_ID = os.getenv("LEARNER_ID", "default_learner")
-
-
 @app.websocket("/ws/voice")
 async def voice_websocket(websocket: WebSocket):
     await websocket.accept()
     logger.info("Client connected")
 
-    # Fetch curriculum context once per connection.
-    curriculum_context = ""
-    try:
-        topics = await get_next_topics(LEARNER_ID, limit=2)
-        if topics:
-            topic_names = [
-                t.get("name", t.get("topic_id", ""))
-                for t in topics
-                if isinstance(t, dict)
-            ]
-            if topic_names:
-                curriculum_context = (
-                    f"El estudiante debería practicar: {', '.join(topic_names)}. "
-                    "Incorpora estos temas en la conversación."
-                )
-    except Exception as e:
-        logger.warning(f"MCP context fetch failed: {e}")
+    sm = session_manager
+
+    # If no active session, start free mode
+    if not sm.state:
+        sm.start_free_session()
+
+    # Send session_plan message if structured mode
+    if sm.state and sm.state.mode == "structured" and sm.state.plan:
+        await websocket.send_text(
+            json.dumps({"type": "session_plan", "plan": sm.state.plan})
+        )
+
+    system_prompt = sm.get_system_prompt()
 
     try:
         while True:
@@ -265,9 +329,15 @@ async def voice_websocket(websocket: WebSocket):
                 )
                 continue
 
+            # Record learner turn
+            sm.record_turn("learner", transcription)
+
+            # Refresh system prompt (may change after activity transition)
+            system_prompt = sm.get_system_prompt()
+
             # LLM streaming + TTS (sentence-level flushing)
             response_text, llm_seconds, tts_seconds = await stream_and_speak(
-                websocket, transcription, curriculum_context
+                websocket, transcription, system_prompt
             )
             metrics.llm_time = llm_seconds
             metrics.tts_time = tts_seconds
@@ -275,6 +345,9 @@ async def voice_websocket(websocket: WebSocket):
                 f"LLM: '{response_text}' ({metrics.llm_time * 1000:.0f}ms), "
                 f"TTS: ({metrics.tts_time * 1000:.0f}ms)"
             )
+
+            # Record teacher turn
+            sm.record_turn("teacher", response_text)
 
             metrics.total_time = (datetime.now() - start).total_seconds()
 
@@ -292,8 +365,19 @@ async def voice_websocket(websocket: WebSocket):
 
             logger.info(f"TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60)
 
+            # Check for activity transition (structured mode only)
+            if sm.should_check_activity():
+                logger.info("Activity duration elapsed — checking transition")
+                transition = await sm.check_and_transition()
+                if transition:
+                    await websocket.send_text(json.dumps(transition))
+                    logger.info(f"Sent transition: {transition.get('type')}")
+
     except WebSocketDisconnect:
         logger.info("Client disconnected")
+        # Fire final assessment for remaining buffered turns
+        if sm.state and sm.state.turn_buffer:
+            await sm.end_session()
     except Exception as e:
         logger.error(f"Error: {e}", exc_info=True)
 
