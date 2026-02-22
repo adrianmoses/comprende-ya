@@ -121,22 +121,38 @@ class TestConfusionOpportunity:
         assert compute_confusion_opportunity("concept_a", []) == 0.0
 
     def test_concept_in_pair(self):
-        pairs = [ConfusionPair(concept_a="concept_a", concept_b="concept_b", evidence_count=3)]
+        pairs = [
+            ConfusionPair(
+                concept_a="concept_a", concept_b="concept_b", evidence_count=3
+            )
+        ]
         result = compute_confusion_opportunity("concept_a", pairs)
         assert abs(result - 0.6) < 0.01  # 3/5 = 0.6
 
     def test_concept_not_in_pair(self):
-        pairs = [ConfusionPair(concept_a="concept_x", concept_b="concept_y", evidence_count=5)]
+        pairs = [
+            ConfusionPair(
+                concept_a="concept_x", concept_b="concept_y", evidence_count=5
+            )
+        ]
         assert compute_confusion_opportunity("concept_a", pairs) == 0.0
 
     def test_saturated_at_5(self):
-        pairs = [ConfusionPair(concept_a="concept_a", concept_b="concept_b", evidence_count=10)]
+        pairs = [
+            ConfusionPair(
+                concept_a="concept_a", concept_b="concept_b", evidence_count=10
+            )
+        ]
         assert compute_confusion_opportunity("concept_a", pairs) == 1.0
 
     def test_picks_max_across_pairs(self):
         pairs = [
-            ConfusionPair(concept_a="concept_a", concept_b="concept_b", evidence_count=2),
-            ConfusionPair(concept_a="concept_a", concept_b="concept_c", evidence_count=4),
+            ConfusionPair(
+                concept_a="concept_a", concept_b="concept_b", evidence_count=2
+            ),
+            ConfusionPair(
+                concept_a="concept_a", concept_b="concept_c", evidence_count=4
+            ),
         ]
         result = compute_confusion_opportunity("concept_a", pairs)
         assert abs(result - 0.8) < 0.01  # max(2/5, 4/5) = 0.8
@@ -152,13 +168,17 @@ class TestScoreConcept:
 
     def test_decaying_concept(self):
         concept = _concept(cid="decaying")
-        state = _state("decaying", mastery=0.8, projected_mastery=0.5, practice_count=10)
+        state = _state(
+            "decaying", mastery=0.8, projected_mastery=0.5, practice_count=10
+        )
         score = score_concept(concept, {"decaying": state}, [])
         assert score > 0.3  # higher than unseen due to decay urgency
 
     def test_confused_concept(self):
         concept = _concept(cid="confused")
-        pairs = [ConfusionPair(concept_a="confused", concept_b="other", evidence_count=5)]
+        pairs = [
+            ConfusionPair(concept_a="confused", concept_b="other", evidence_count=5)
+        ]
         score = score_concept(concept, {}, pairs)
         # decay=0, readiness=1.0, confusion=1.0
         # score = 0.3 + 0.2 = 0.5
@@ -195,8 +215,12 @@ class TestSelectContext:
 
     def test_prefers_reliable_over_unreliable(self):
         contexts = [
-            EffectiveContext(context_id="unreliable_high", effectiveness=0.95, sample_count=1),
-            EffectiveContext(context_id="reliable_lower", effectiveness=0.7, sample_count=5),
+            EffectiveContext(
+                context_id="unreliable_high", effectiveness=0.95, sample_count=1
+            ),
+            EffectiveContext(
+                context_id="reliable_lower", effectiveness=0.7, sample_count=5
+            ),
         ]
         concept = _concept()
         # Should prefer reliable (sample_count >= 3)
@@ -205,10 +229,16 @@ class TestSelectContext:
     def test_scoped_by_concept_id(self):
         contexts = [
             EffectiveContext(
-                context_id="role_play", concept_id="vocab_1", effectiveness=0.9, sample_count=5
+                context_id="role_play",
+                concept_id="vocab_1",
+                effectiveness=0.9,
+                sample_count=5,
             ),
             EffectiveContext(
-                context_id="structured_practice", concept_id="grammar_1", effectiveness=0.8, sample_count=5
+                context_id="structured_practice",
+                concept_id="grammar_1",
+                effectiveness=0.8,
+                sample_count=5,
             ),
         ]
         vocab = _concept(cid="vocab_1", category="vocabulary")
@@ -241,7 +271,9 @@ class TestAssignActivities:
 
     def test_confused_concepts_get_discrimination(self):
         concept = _concept(cid="conf_a")
-        pairs = [ConfusionPair(concept_a="conf_a", concept_b="conf_b", evidence_count=3)]
+        pairs = [
+            ConfusionPair(concept_a="conf_a", concept_b="conf_b", evidence_count=3)
+        ]
         activities = assign_activities([concept], {}, pairs, [], 30.0)
         assert any(a.activity_type == "discrimination" for a in activities)
 
@@ -300,9 +332,7 @@ class TestBuildSessionPlan:
 
     def test_cold_start_plan(self):
         """New learner with no state should get a valid plan."""
-        concepts = [
-            _concept(cid=f"c{i}", name=f"Concept {i}") for i in range(5)
-        ]
+        concepts = [_concept(cid=f"c{i}", name=f"Concept {i}") for i in range(5)]
         plan = build_session_plan("new_learner", concepts, [], [], [], 30.0)
         assert len(plan.activities) > 0
         # All should be conversation (unseen, no prereqs)
@@ -332,7 +362,9 @@ class TestReplan:
 
     def test_too_early(self):
         plan = self._make_plan([self._activity()])
-        progress = PlannerProgress(activity_index=0, outcome_so_far=0.9, time_elapsed_min=1.0)
+        progress = PlannerProgress(
+            activity_index=0, outcome_so_far=0.9, time_elapsed_min=1.0
+        )
         result = replan(plan, progress)
         assert result.action == "continue"
         assert "Too early" in result.reason
