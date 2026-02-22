@@ -321,13 +321,15 @@ async def ingest_evidence(
                         )
 
             # 8. Context tracking (no-op when context_id is null)
+            #    Scoped per (context_id, concept_id) pair.
             if event.context_id:
                 ctx_id = escape_cypher(event.context_id)
+                cid_esc = escape_cypher(event.concept_id)
                 ctx_rows = await cypher_query(
                     conn,
                     GRAPH_NAME,
                     f"MATCH (l:Learner {{id: '{lid}'}})"
-                    f"-[r:RESPONDS_WELL_TO {{context_id: '{ctx_id}'}}]->"
+                    f"-[r:RESPONDS_WELL_TO {{context_id: '{ctx_id}', concept_id: '{cid_esc}'}}]->"
                     f"(l) RETURN r",
                 )
                 if ctx_rows:
@@ -342,7 +344,7 @@ async def ingest_evidence(
                         conn,
                         GRAPH_NAME,
                         f"MATCH (l:Learner {{id: '{lid}'}})"
-                        f"-[r:RESPONDS_WELL_TO {{context_id: '{ctx_id}'}}]->"
+                        f"-[r:RESPONDS_WELL_TO {{context_id: '{ctx_id}', concept_id: '{cid_esc}'}}]->"
                         f"(l) "
                         f"SET r.effectiveness = {round(new_eff, 4)}, "
                         f"r.sample_count = {new_count}",
@@ -354,6 +356,7 @@ async def ingest_evidence(
                         f"MATCH (l:Learner {{id: '{lid}'}}) "
                         f"CREATE (l)-[:RESPONDS_WELL_TO {{"
                         f"context_id: '{ctx_id}', "
+                        f"concept_id: '{cid_esc}', "
                         f"effectiveness: {event.outcome}, "
                         f"sample_count: 1"
                         f"}}]->(l)",

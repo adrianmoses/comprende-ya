@@ -241,13 +241,13 @@ Activity:
 
 ### Checklist — 3D
 
-- [ ] Implement priority scoring: decay urgency + prerequisite readiness + confusion opportunity
-- [ ] Implement `plan_session` tool
-- [ ] Implement `replan_activity` tool for intra-session adjustment
-- [ ] Implement `query_concepts` with filtering by level, category, prerequisite status
-- [ ] Activity type templates (drill, conversation, discrimination exercise)
-- [ ] Context selection based on `RESPONDS_WELL_TO` effectiveness data
-- [ ] Integration test: full plan → teach → assess → update → replan cycle
+- [x] Implement priority scoring: decay urgency + prerequisite readiness + confusion opportunity
+- [x] Implement `plan_session` tool
+- [x] Implement `replan_activity` tool for intra-session adjustment
+- [x] Implement `query_concepts` with filtering by level, category, prerequisite status
+- [x] Activity type templates (drill, conversation, discrimination exercise)
+- [x] Context selection based on `RESPONDS_WELL_TO` effectiveness data
+- [x] Integration test: full plan → teach → assess → update → replan cycle
 
 ### 3E — Voice Agent Integration
 

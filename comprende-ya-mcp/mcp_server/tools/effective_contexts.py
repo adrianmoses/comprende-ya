@@ -24,9 +24,11 @@ async def get_effective_contexts(
     contexts = []
     for r in rows:
         props = r.get("properties", r) if isinstance(r, dict) else r
+        concept_id_raw = props.get("concept_id")
         contexts.append(
             EffectiveContext(
                 context_id=str(props.get("context_id", "")),
+                concept_id=str(concept_id_raw) if concept_id_raw else None,
                 effectiveness=float(props.get("effectiveness", 0.0)),
                 sample_count=int(props.get("sample_count", 0)),
             )

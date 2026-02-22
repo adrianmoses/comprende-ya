@@ -68,7 +68,8 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 - Context nodes: label created, population deferred to Phase 3C
 - Learner model: STUDIES edges (half-life decay mastery), EVIDENCE edges (immutable event log), CONFUSES_WITH, RESPONDS_WELL_TO
 - No relational tables — all state lives on graph edges
-- 6 tools: query_concepts, ingest_evidence, get_learner_state, get_learner_profile, get_confusion_pairs, get_effective_contexts
+- 8 tools: query_concepts, ingest_evidence, get_learner_state, get_learner_profile, get_confusion_pairs, get_effective_contexts, plan_session, replan_activity
+- Curriculum planner: stateless priority scoring (decay urgency + readiness + confusion opportunity) → SessionPlan with ordered activities
 - Every connection requires `LOAD 'age'` — handled by pool configure callback
 
 **Webapp**: Next.js 15 with App Router
@@ -117,6 +118,8 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 - `comprende-ya-mcp/mcp_server/tools/learner.py`: get_learner_profile tool (mastered/progressing/decaying/unseen)
 - `comprende-ya-mcp/mcp_server/tools/confusion_pairs.py`: get_confusion_pairs tool (CONFUSES_WITH edges)
 - `comprende-ya-mcp/mcp_server/tools/effective_contexts.py`: get_effective_contexts tool (RESPONDS_WELL_TO edges)
+- `comprende-ya-mcp/mcp_server/planner.py`: Pure curriculum planner logic (scoring, plan assembly, replanning)
+- `comprende-ya-mcp/mcp_server/tools/planner.py`: MCP tool wrappers for plan_session, replan_activity
 - `concept_graph.json`: B2 concept taxonomy (53 concepts, source of truth)
 - `voice-agent/mcp_client.py`: MCP client wrapper for voice agent
 - `NEXT_STEPS.md`: Development roadmap / TODO checklist
