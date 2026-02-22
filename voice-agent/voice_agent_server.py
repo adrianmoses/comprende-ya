@@ -1,13 +1,13 @@
 import asyncio
 import logging
+import re
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import json
 from datetime import datetime
-import torch
 from faster_whisper import WhisperModel
-from vllm import LLM, SamplingParams
+from openai import AsyncOpenAI
 import subprocess
 import tempfile
 import os
@@ -28,53 +28,41 @@ app.add_middleware(
 )
 
 # ============================================
-# CARGAR MODELOS
+# LOAD MODELS / CLIENTS
 # ============================================
 
-logger.info("🔧 Cargando modelos...")
+logger.info("Loading models...")
 
-
-# vLLM con optimizaciones
-logger.info("  - Cargando Llama 3.2-3B...")
-llm_model = LLM(
-    model="meta-llama/Llama-3.2-3B-Instruct",
-    gpu_memory_utilization=0.5,
-    dtype="half",
-    max_model_len=512,  # Contexto corto
-    enforce_eager=False,
-    trust_remote_code=True,
-)
-
-# Whisper
-logger.info("  - Cargando Whisper...")
+# Whisper STT
+logger.info("  - Loading Whisper...")
 whisper_model = WhisperModel(
-    "small",  # Better accuracy than base for Spanish
+    "small",
     device="cuda",
     compute_type="float16",
 )
-logger.info("  ✅ Whisper cargado")
+logger.info("  Whisper loaded")
 
-sampling_params = SamplingParams(
-    temperature=0.7,
-    top_p=0.9,
-    max_tokens=30,  # Respuestas cortas
-    stop=["<|eot_id|>", "\n\n", "Usuario:", "<|end"],
-)
-logger.info("  ✅ Llama 3.2-3B cargado")
+# LLM via llama-server (OpenAI-compatible API)
+LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:8081/v1")
+LLAMA_MODEL = os.getenv("LLAMA_MODEL", "Llama-3.2-3B-Instruct-Q8_0.gguf")
+llm_client = AsyncOpenAI(base_url=LLAMA_SERVER_URL, api_key="not-needed")
+logger.info(f"  LLM client: {LLAMA_SERVER_URL}")
 
 # Piper TTS
 PIPER_MODEL_PATH = os.path.expanduser("~/piper_models/es_ES-carlfm-x_low.onnx")
-logger.info(f"  - Piper TTS: {PIPER_MODEL_PATH}")
-logger.info("✅ Todos los modelos listos!")
+logger.info(f"  Piper TTS: {PIPER_MODEL_PATH}")
+logger.info("All models/clients ready!")
 
 
 # ============================================
-# FUNCIONES
+# FUNCTIONS
 # ============================================
+
+SENTENCE_ENDINGS = re.compile(r"[.!?](?:\s+|$)")
 
 
 async def transcribe_audio(audio_bytes):
-    """STT con timeout"""
+    """STT with timeout"""
     audio_np = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
 
     def _transcribe():
@@ -91,46 +79,13 @@ async def transcribe_audio(audio_bytes):
     return await asyncio.to_thread(_transcribe)
 
 
-async def generate_response(user_text, curriculum_context: str = ""):
-    """LLM con prompt limpio, optionally enriched with curriculum context."""
-
-    system_msg = (
-        "Eres un profesor de español. Responde con UNA sola frase corta y natural."
-    )
-    if curriculum_context:
-        system_msg += f"\n\n{curriculum_context}"
-
-    prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-{system_msg}<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{user_text}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-"""
-
-    def _generate():
-        outputs = llm_model.generate([prompt], sampling_params)
-        response = outputs[0].outputs[0].text.strip()
-
-        # Limpiar
-        response = response.split("\n")[0].split("<|")[0].strip()
-
-        # Limitar longitud
-        if len(response) > 150:
-            response = response[:150].rsplit(" ", 1)[0] + "..."
-
-        return response
-
-    return await asyncio.to_thread(_generate)
-
-
 async def text_to_speech(text):
-    """TTS con fallback"""
+    """TTS with fallback"""
 
     if not text or len(text) < 2:
         return np.zeros(8000, dtype=np.int16).tobytes()
 
-    text = text[:200]  # Limitar
+    text = text[:200]  # Limit length
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
         tmp_path = tmp_file.name
@@ -149,7 +104,7 @@ async def text_to_speech(text):
 
         stdout, stderr = await asyncio.wait_for(
             process.communicate(input=text.encode("utf-8")),
-            timeout=5.0,  # Timeout de 5s
+            timeout=5.0,
         )
 
         if process.returncode != 0:
@@ -163,8 +118,7 @@ async def text_to_speech(text):
         return audio_data
 
     except Exception as e:
-        logger.error(f"❌ TTS error: {e}")
-        # Fallback: beep simple
+        logger.error(f"TTS error: {e}")
         t = np.linspace(0, 0.3, 4800)
         beep = (np.sin(2 * np.pi * 440 * t) * 8000).astype(np.int16)
         return beep.tobytes()
@@ -172,6 +126,63 @@ async def text_to_speech(text):
     finally:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+
+async def stream_and_speak(websocket, user_text, curriculum_context):
+    """Stream LLM tokens, buffer by sentence, flush each sentence to TTS.
+
+    Returns (full_response, llm_seconds, tts_seconds).
+    """
+    system_msg = (
+        "Eres un profesor de español. Responde con UNA sola frase corta y natural."
+    )
+    if curriculum_context:
+        system_msg += f"\n\n{curriculum_context}"
+
+    buffer = ""
+    full_response = ""
+    tts_total = 0.0
+
+    llm_start = datetime.now()
+    stream = await llm_client.chat.completions.create(
+        model=LLAMA_MODEL,
+        stream=True,
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_text},
+        ],
+        temperature=0.7,
+        top_p=0.9,
+        max_tokens=60,
+        stop=["\n\n"],
+    )
+
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        token = delta.content if delta.content else ""
+        buffer += token
+        full_response += token
+
+        # Flush on sentence boundary
+        if SENTENCE_ENDINGS.search(buffer):
+            sentence = buffer.strip()
+            buffer = ""
+            if sentence:
+                tts_start = datetime.now()
+                audio = await text_to_speech(sentence)
+                tts_total += (datetime.now() - tts_start).total_seconds()
+                await websocket.send_bytes(audio)
+
+    llm_seconds = (datetime.now() - llm_start).total_seconds() - tts_total
+
+    # Flush remaining buffer
+    if buffer.strip():
+        tts_start = datetime.now()
+        audio = await text_to_speech(buffer.strip())
+        tts_total += (datetime.now() - tts_start).total_seconds()
+        await websocket.send_bytes(audio)
+
+    return full_response.strip(), llm_seconds, tts_total
 
 
 # ============================================
@@ -204,11 +215,9 @@ LEARNER_ID = os.getenv("LEARNER_ID", "default_learner")
 @app.websocket("/ws/voice")
 async def voice_websocket(websocket: WebSocket):
     await websocket.accept()
-    logger.info("✅ Cliente conectado")
+    logger.info("Client connected")
 
     # Fetch curriculum context once per connection.
-    # TODO: refresh periodically for long-lived connections so context
-    # stays up-to-date as the learner progresses.
     curriculum_context = ""
     try:
         topics = await get_next_topics(LEARNER_ID, limit=2)
@@ -229,7 +238,7 @@ async def voice_websocket(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_bytes()
-            logger.info(f"📥 Recibido {len(data)} bytes")
+            logger.info(f"Received {len(data)} bytes")
 
             metrics = Metrics()
             start = datetime.now()
@@ -238,31 +247,38 @@ async def voice_websocket(websocket: WebSocket):
             stt_start = datetime.now()
             transcription = await transcribe_audio(data)
             metrics.stt_time = (datetime.now() - stt_start).total_seconds()
-            logger.info(f"🎤 STT: '{transcription}' ({metrics.stt_time * 1000:.0f}ms)")
+            logger.info(f"STT: '{transcription}' ({metrics.stt_time * 1000:.0f}ms)")
 
             if not transcription:
-                logger.warning("⚠️ Sin transcripción")
+                logger.warning("No transcription")
                 await websocket.send_bytes(np.zeros(8000, dtype=np.int16).tobytes())
+                metrics.total_time = (datetime.now() - start).total_seconds()
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "metrics",
+                            "data": metrics.to_dict(),
+                            "transcription": "",
+                            "response": "",
+                        }
+                    )
+                )
                 continue
 
-            # LLM
-            llm_start = datetime.now()
-            response_text = await generate_response(transcription, curriculum_context)
-            metrics.llm_time = (datetime.now() - llm_start).total_seconds()
-            logger.info(f"🤖 LLM: '{response_text}' ({metrics.llm_time * 1000:.0f}ms)")
-
-            # TTS
-            tts_start = datetime.now()
-            audio_response = await text_to_speech(response_text)
-            metrics.tts_time = (datetime.now() - tts_start).total_seconds()
+            # LLM streaming + TTS (sentence-level flushing)
+            response_text, llm_seconds, tts_seconds = await stream_and_speak(
+                websocket, transcription, curriculum_context
+            )
+            metrics.llm_time = llm_seconds
+            metrics.tts_time = tts_seconds
             logger.info(
-                f"🔊 TTS: {len(audio_response)} bytes ({metrics.tts_time * 1000:.0f}ms)"
+                f"LLM: '{response_text}' ({metrics.llm_time * 1000:.0f}ms), "
+                f"TTS: ({metrics.tts_time * 1000:.0f}ms)"
             )
 
             metrics.total_time = (datetime.now() - start).total_seconds()
 
-            # Enviar respuesta (audio primero, luego métricas)
-            await websocket.send_bytes(audio_response)
+            # Send metrics JSON after all audio chunks
             await websocket.send_text(
                 json.dumps(
                     {
@@ -274,34 +290,47 @@ async def voice_websocket(websocket: WebSocket):
                 )
             )
 
-            logger.info(f"📤 TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60)
-
-            # TODO(Phase 3): extract practiced topic from transcription/response
-            # and call record_attempt with the actual topic_id and result.
+            logger.info(
+                f"TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60
+            )
 
     except WebSocketDisconnect:
-        logger.info("❌ Cliente desconectado")
+        logger.info("Client disconnected")
     except Exception as e:
-        logger.error(f"💥 Error: {e}", exc_info=True)
+        logger.error(f"Error: {e}", exc_info=True)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "gpu": torch.cuda.get_device_name(0)}
+    return {"status": "ok", "llm_backend": LLAMA_SERVER_URL}
 
 
-def warmup():
+async def warmup():
     """Warm up all models to avoid cold-start latency."""
-    logger.info("🔥 Warming up models...")
+    logger.info("Warming up models...")
 
     # STT warmup
     dummy_audio = np.zeros(16000, dtype=np.float32)  # 1s silence
     whisper_model.transcribe(dummy_audio, language="es")
-    logger.info("  ✅ STT warm")
+    logger.info("  STT warm")
 
-    # LLM warmup
-    llm_model.generate(["Hola"], SamplingParams(max_tokens=1))
-    logger.info("  ✅ LLM warm")
+    # LLM warmup — retry until llama-server is reachable
+    max_retries = 10
+    for attempt in range(1, max_retries + 1):
+        try:
+            await llm_client.chat.completions.create(
+                model=LLAMA_MODEL,
+                messages=[{"role": "user", "content": "Hola"}],
+                max_tokens=1,
+            )
+            logger.info("  LLM warm")
+            break
+        except Exception as e:
+            if attempt == max_retries:
+                logger.error(f"  LLM warmup failed after {max_retries} attempts: {e}")
+                raise
+            logger.info(f"  LLM not ready (attempt {attempt}/{max_retries}), retrying in 3s...")
+            await asyncio.sleep(3)
 
     # TTS warmup
     subprocess.run(
@@ -310,13 +339,13 @@ def warmup():
         capture_output=True,
         timeout=10,
     )
-    logger.info("  ✅ TTS warm")
+    logger.info("  TTS warm")
 
-    logger.info("✅ Warmup complete!")
+    logger.info("Warmup complete!")
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    warmup()
+    asyncio.run(warmup())
     uvicorn.run(app, host="0.0.0.0", port=8765)

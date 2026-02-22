@@ -25,3 +25,6 @@ out/
 .pnpm-store/
 
 *.tsbuildinfo
+
+# GGUF model files (large binaries)
+models/*.gguf

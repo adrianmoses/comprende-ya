@@ -14,7 +14,8 @@ comprende-ya/
 ├── webapp/             # Next.js web client (pnpm)
 ├── comprende-ya-mcp/         # Knowledge graph MCP server (FastMCP + PostgreSQL/AGE)
 ├── pyproject.toml      # Root uv workspace
-└── docker-compose.yml  # PostgreSQL + Apache AGE (port 5455)
+├── models/             # GGUF model files for llama-server
+└── docker-compose.yml  # PostgreSQL + AGE (5455) + llama-server (8081)
 ```
 
 ## Commands
@@ -39,7 +40,7 @@ uv run --package voice-agent python voice-agent/benchmark.py      # Benchmark
 uv run --package voice-agent python voice-agent/diagnostic.py     # Diagnostics
 
 # MCP server (from repo root)
-docker compose up -d                                              # Start AGE database
+docker compose up -d                                              # Start AGE database + llama-server
 uv run --package comprende-ya-mcp python -m mcp_server.seed             # Seed A1 curriculum (legacy)
 uv run --package comprende-ya-mcp python -m mcp_server.b2_seed          # Seed B2 concept graph (drops + recreates)
 uv run --package comprende-ya-mcp python -m mcp_server.server           # Start MCP server (port 8001)
@@ -51,15 +52,16 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 
 ## Architecture
 
-**Voice pipeline**: Audio bytes → STT → LLM → TTS → Audio response
+**Voice pipeline**: Audio bytes → STT → LLM (streaming) → TTS (sentence-level) → Audio response
 
 - **STT**: Faster-Whisper (`small` model, CUDA, float16)
-- **LLM**: vLLM with `meta-llama/Llama-3.2-3B-Instruct` (half precision, 512 token context)
+- **LLM**: llama-server (`Llama-3.2-3B-Instruct` GGUF Q8_0) via OpenAI-compatible API on `:8081`
 - **TTS**: Piper via CLI subprocess (Spanish voice model)
+- Both voice agent and MCP judge share the same llama-server instance
 
 **Server**: FastAPI with WebSocket endpoint at `/ws/voice`
 - Receives: raw int16 audio bytes (16kHz mono)
-- Returns: audio bytes + JSON metrics (transcription, response, latencies)
+- Returns: N binary frames (one per sentence, streamed) + 1 JSON metrics text frame
 
 **MCP Server**: FastMCP with PostgreSQL + Apache AGE (Cypher graph queries)
 - Concept graph: 53 B2-level Concept nodes with REQUIRES (DAG), RELATED_TO, CONTRASTS_WITH edges
@@ -73,24 +75,22 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 - AudioWorklet captures mic → PCM int16 via WebSocket
 - Health check polling at `/health`
 
-## Critical: Model Loading Order
-
-vLLM **must** be loaded before Faster-Whisper. vLLM spawns subprocesses that require CUDA initialization before any CUDA context exists in the parent process. Loading Whisper first will cause CUDA errors in vLLM's subprocess.
-
 ## External Dependencies
 
+- **llama-server**: runs via Docker (see `docker-compose.yml`), serves GGUF model on `:8081`
+- **GGUF model**: download `Llama-3.2-3B-Instruct-Q8_0.gguf` into `models/` at repo root
 - Piper TTS model expected at: `~/piper_models/es_ES-carlfm-x_low.onnx`
 - `piper` command must be in PATH
-- GPU with ~10GB+ VRAM (Llama 3.2-3B uses ~6GB, Whisper uses additional memory)
+- GPU with VRAM for llama-server (~4GB for Q8_0 3B) + Whisper
 
 ## WebSocket Protocol
 
 **Endpoint:** `ws://localhost:8765/ws/voice`
 
 1. Client sends raw `int16` audio bytes (16 kHz mono).
-2. Server replies with two messages:
-   - Binary frame: synthesized audio (int16, 16 kHz, mono)
-   - Text frame: JSON `{ type, data: { stt_ms, llm_ms, tts_ms, total_ms }, transcription, response }`
+2. Server replies with N+1 messages:
+   - N binary frames: synthesized audio sentences (int16, 16 kHz, mono) — streamed as LLM generates
+   - 1 text frame: JSON `{ type, data: { stt_ms, llm_ms, tts_ms, total_ms }, transcription, response }`
 
 **Health check:** `GET /health`
 
