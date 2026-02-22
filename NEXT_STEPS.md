@@ -186,12 +186,12 @@ Converts raw voice agent transcripts into structured `EvidenceEvent`s. Runs a **
 
 ### Checklist — 3C
 
-- [ ] Define interaction event schema (what the voice agent emits)
-- [ ] Assessment prompt template: score utterances against concept `mastery_signals`
-- [ ] Local LLM integration for assessment (separate from conversation LLM)
-- [ ] Misconception detection logic (pattern matching across recent evidence)
-- [ ] Context pattern extraction (register + topic domain from conversation)
-- [ ] Pipeline: raw events → LLM judge → `EvidenceEvent[]` → `ingest_evidence()`
+- [x] Define interaction event schema (what the voice agent emits)
+- [x] Assessment prompt template: score utterances against concept `mastery_signals`
+- [x] Local LLM integration for assessment (separate from conversation LLM)
+- [x] Misconception detection logic (pattern matching across recent evidence)
+- [x] Context pattern extraction (register + topic domain from conversation)
+- [x] Pipeline: raw events → LLM judge → `EvidenceEvent[]` → `ingest_evidence()`
 - [ ] Evaluation: compare LLM-judge ratings against manual annotations
 
 ### 3D — Curriculum Planner
