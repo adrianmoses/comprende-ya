@@ -2,8 +2,9 @@
 
 import pytest
 
+from mcp_server.assessment import _get_recent_concepts
 from mcp_server.models import EvidenceEvent
-from mcp_server.tools.concepts import query_concepts
+from mcp_server.tools.concepts import query_concepts, query_concepts_batch
 from mcp_server.tools.confusion_pairs import get_confusion_pairs
 from mcp_server.tools.effective_contexts import get_effective_contexts
 from mcp_server.tools.ingest_evidence import ingest_evidence
@@ -48,6 +49,128 @@ class TestQueryConcepts:
         )
         assert len(concepts) == 1
         assert "subjunctive_imperfect_forms" in concepts[0].related
+
+
+class TestQueryConceptsBatch:
+    async def test_returns_requested_concepts(self, seeded_pool):
+        ids = ["subjunctive_desire", "passive_se"]
+        concepts = await query_concepts_batch(seeded_pool, ids)
+        returned_ids = {c.id for c in concepts}
+        assert returned_ids == set(ids)
+
+    async def test_empty_list_returns_empty(self, seeded_pool):
+        concepts = await query_concepts_batch(seeded_pool, [])
+        assert concepts == []
+
+    async def test_unknown_ids_ignored(self, seeded_pool):
+        concepts = await query_concepts_batch(
+            seeded_pool, ["nonexistent_concept", "also_fake"]
+        )
+        assert concepts == []
+
+    async def test_mixed_known_and_unknown(self, seeded_pool):
+        concepts = await query_concepts_batch(
+            seeded_pool, ["subjunctive_desire", "nonexistent"]
+        )
+        assert len(concepts) == 1
+        assert concepts[0].id == "subjunctive_desire"
+
+    async def test_includes_edges(self, seeded_pool):
+        concepts = await query_concepts_batch(seeded_pool, ["passive_se"])
+        assert len(concepts) == 1
+        c = concepts[0]
+        assert "impersonal_se" in c.contrasts_with
+
+    async def test_includes_prerequisites(self, seeded_pool):
+        concepts = await query_concepts_batch(seeded_pool, ["subjunctive_desire"])
+        assert len(concepts) == 1
+        assert "subjunctive_present_forms" in concepts[0].prerequisites
+
+    async def test_includes_related(self, seeded_pool):
+        concepts = await query_concepts_batch(
+            seeded_pool, ["subjunctive_present_forms"]
+        )
+        assert len(concepts) == 1
+        assert "subjunctive_imperfect_forms" in concepts[0].related
+
+    async def test_matches_single_query(self, seeded_pool):
+        """Batch results should match individual query_concepts results."""
+        single = await query_concepts(seeded_pool, concept_id="subjunctive_desire")
+        batch = await query_concepts_batch(seeded_pool, ["subjunctive_desire"])
+        assert len(single) == 1
+        assert len(batch) == 1
+        assert single[0].id == batch[0].id
+        assert single[0].name == batch[0].name
+        assert single[0].prerequisites == batch[0].prerequisites
+        assert single[0].mastery_signals == batch[0].mastery_signals
+        assert set(single[0].contrasts_with) == set(batch[0].contrasts_with)
+        assert set(single[0].related) == set(batch[0].related)
+
+
+class TestGetRecentConcepts:
+    async def test_empty_for_new_learner(self, seeded_pool, clean_learner):
+        concepts = await _get_recent_concepts(seeded_pool, clean_learner)
+        assert concepts == []
+
+    async def test_returns_studied_concepts(self, seeded_pool, clean_learner):
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="subjunctive_present_forms",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                ),
+                EvidenceEvent(
+                    concept_id="passive_se",
+                    signal="produced_correctly",
+                    outcome=0.7,
+                ),
+            ],
+        )
+        concepts = await _get_recent_concepts(seeded_pool, clean_learner)
+        returned_ids = {c.id for c in concepts}
+        assert "subjunctive_present_forms" in returned_ids
+        assert "passive_se" in returned_ids
+
+    async def test_respects_limit(self, seeded_pool, clean_learner):
+        # Ingest evidence for 3 concepts
+        for cid in ["subjunctive_present_forms", "passive_se", "impersonal_se"]:
+            await ingest_evidence(
+                seeded_pool,
+                clean_learner,
+                [
+                    EvidenceEvent(
+                        concept_id=cid,
+                        signal="produced_correctly",
+                        outcome=0.8,
+                    )
+                ],
+            )
+        concepts = await _get_recent_concepts(seeded_pool, clean_learner, limit=2)
+        assert len(concepts) == 2
+
+    async def test_returns_full_concept_data(self, seeded_pool, clean_learner):
+        await ingest_evidence(
+            seeded_pool,
+            clean_learner,
+            [
+                EvidenceEvent(
+                    concept_id="passive_se",
+                    signal="produced_correctly",
+                    outcome=0.8,
+                )
+            ],
+        )
+        concepts = await _get_recent_concepts(seeded_pool, clean_learner)
+        assert len(concepts) == 1
+        c = concepts[0]
+        # Should have full ConceptSummary data, not just IDs
+        assert c.id == "passive_se"
+        assert c.name != ""
+        assert len(c.mastery_signals) > 0
+        assert "impersonal_se" in c.contrasts_with
 
 
 class TestIngestEvidence:

@@ -78,6 +78,28 @@ cd webapp && pnpm dev
 
 Opens on `http://localhost:3000`. Shows a health indicator (green when voice agent is running). Click the record button to capture audio and send it to the voice agent.
 
+### Start the judge LLM (for assessment)
+
+The assessment layer uses a separate vLLM instance as an LLM-as-judge to score learner utterances against concept mastery signals.
+
+```bash
+vllm serve meta-llama/Llama-3.2-3B-Instruct \
+  --port 8002 \
+  --gpu-memory-utilization 0.4 \
+  --max-model-len 4096 \
+  --dtype half
+```
+
+Listens on `http://localhost:8002` (OpenAI-compatible API). Configure via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JUDGE_LLM_BASE_URL` | `http://localhost:8002/v1` | Base URL for the judge LLM API |
+| `JUDGE_LLM_MODEL` | `meta-llama/Llama-3.2-3B-Instruct` | Model name sent in requests |
+| `JUDGE_LLM_TIMEOUT` | `30.0` | Request timeout in seconds |
+
+> **Note:** If you're already running vLLM for the voice agent on port 8765, the judge needs its own instance on a separate port. Adjust `--gpu-memory-utilization` so both fit in VRAM.
+
 ### CLI tools
 
 ```bash

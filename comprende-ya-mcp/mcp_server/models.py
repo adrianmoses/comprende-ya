@@ -64,3 +64,23 @@ class LearnerProfile(BaseModel):
     unseen: list[str] = []
     confusion_pairs: list[ConfusionPair] = []
     total_evidence_count: int = 0
+
+
+class InteractionTurn(BaseModel):
+    role: str  # "learner" or "teacher"
+    text: str
+    timestamp: str | None = None
+    turn_index: int = 0
+
+
+class AssessmentResult(BaseModel):
+    session_id: str
+    learner_id: str
+    turns_assessed: int
+    evidence_events_created: int
+    concepts_assessed: list[str] = []
+    context_id: str | None = None
+    studies_updated: list[dict] = []
+    confusions_detected: list[dict] = []
+    judge_model: str = ""
+    errors: list[str] = []
