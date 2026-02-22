@@ -7,9 +7,7 @@ import os
 import httpx
 
 JUDGE_LLM_BASE_URL = os.environ.get("JUDGE_LLM_BASE_URL", "http://localhost:8002/v1")
-JUDGE_LLM_MODEL = os.environ.get(
-    "JUDGE_LLM_MODEL", "meta-llama/Llama-3.2-3B-Instruct"
-)
+JUDGE_LLM_MODEL = os.environ.get("JUDGE_LLM_MODEL", "meta-llama/Llama-3.2-3B-Instruct")
 JUDGE_LLM_TIMEOUT = float(os.environ.get("JUDGE_LLM_TIMEOUT", "30.0"))
 
 

@@ -31,7 +31,10 @@ def sample_concepts() -> list[ConceptSummary]:
             id="subjunctive_present",
             name="Present Subjunctive",
             description="Formation and use of present subjunctive mood",
-            mastery_signals=["correct conjugation in noun clauses", "use after emotion verbs"],
+            mastery_signals=[
+                "correct conjugation in noun clauses",
+                "use after emotion verbs",
+            ],
             contrasts_with=["indicative_present"],
         ),
         ConceptSummary(
@@ -256,7 +259,7 @@ class TestParseAssessmentResponse:
 
     def test_json_in_prose_recovery(self, sample_turns):
         raw = (
-            'Based on my analysis:\n'
+            "Based on my analysis:\n"
             + json.dumps(
                 {
                     "context_id": None,

@@ -198,7 +198,11 @@ def parse_assessment_response(
 
         # confused_with → emit partner event
         confused_with = raw_ev.get("confused_with_concept_id")
-        if signal == "confused_with" and confused_with and confused_with in valid_concept_ids:
+        if (
+            signal == "confused_with"
+            and confused_with
+            and confused_with in valid_concept_ids
+        ):
             partner_key = (confused_with, turn_index)
             if partner_key not in seen:
                 seen.add(partner_key)
@@ -338,7 +342,9 @@ async def run_assessment(
         )
 
     # 4. Ingest evidence
-    ingest_result = await ingest_evidence(pool, learner_id=learner_id, events=evidence_events)
+    ingest_result = await ingest_evidence(
+        pool, learner_id=learner_id, events=evidence_events
+    )
 
     # 5. Build result
     concepts_assessed = list({e.concept_id for e in evidence_events})

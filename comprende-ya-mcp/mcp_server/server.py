@@ -21,7 +21,9 @@ from mcp_server.tools.effective_contexts import (
 )
 from mcp_server.tools.ingest_evidence import ingest_evidence as _ingest_evidence
 from mcp_server.tools.learner import get_learner_profile as _get_learner_profile
-from mcp_server.tools.assess_interaction import assess_interaction as _assess_interaction
+from mcp_server.tools.assess_interaction import (
+    assess_interaction as _assess_interaction,
+)
 from mcp_server.tools.learner_state import get_learner_state as _get_learner_state
 
 
