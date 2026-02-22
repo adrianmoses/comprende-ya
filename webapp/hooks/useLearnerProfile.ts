@@ -14,8 +14,11 @@ export function useLearnerProfile(intervalMs = 30000) {
     try {
       const res = await fetch(`${VOICE_AGENT_BASE_URL}/learner/profile`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: LearnerProfile = await res.json();
-      setProfile(data);
+      const data = await res.json();
+      // Only accept valid profiles (MCP failure returns {})
+      if (data && data.learner_id) {
+        setProfile(data as LearnerProfile);
+      }
     } catch {
       // Keep previous data on error
     } finally {

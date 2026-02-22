@@ -54,7 +54,12 @@ class SessionManager:
     async def start_structured_session(self, duration_min: float = 30.0) -> dict:
         """Start a structured session with a curriculum plan."""
         plan = await mcp_client.plan_session(self.learner_id, duration_min)
-        if not plan or not plan.get("activities"):
+        logger.info(
+            "plan_session returned type=%s keys=%s",
+            type(plan).__name__,
+            list(plan.keys()) if isinstance(plan, dict) else repr(plan)[:200],
+        )
+        if not isinstance(plan, dict) or not plan.get("activities"):
             # Fall back to free mode if planning fails
             return self.start_free_session()
 

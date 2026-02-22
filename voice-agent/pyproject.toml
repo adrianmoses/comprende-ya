@@ -17,4 +17,11 @@ dependencies = [
     "websockets>=14.0",
     "numpy>=1.26.0",
     "fastmcp>=2.13",
+    "nvidia-cublas-cu12>=12.4",
+    "nvidia-cudnn-cu12>=9.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

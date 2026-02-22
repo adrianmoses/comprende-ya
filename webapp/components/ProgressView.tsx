@@ -53,28 +53,28 @@ export function ProgressView() {
       <div className="grid grid-cols-4 gap-2">
         <SummaryCard
           label="Mastered"
-          count={profile.mastered.length}
+          count={profile.mastered?.length ?? 0}
           color="text-green-400"
         />
         <SummaryCard
           label="Progressing"
-          count={profile.progressing.length}
+          count={profile.progressing?.length ?? 0}
           color="text-blue-400"
         />
         <SummaryCard
           label="Decaying"
-          count={profile.decaying.length}
+          count={profile.decaying?.length ?? 0}
           color="text-amber-400"
         />
         <SummaryCard
           label="Unseen"
-          count={profile.unseen.length}
+          count={profile.unseen?.length ?? 0}
           color="text-zinc-400"
         />
       </div>
 
       <p className="text-[10px] text-zinc-500 text-center">
-        {profile.total_evidence_count} total evidence events
+        {profile.total_evidence_count ?? 0} total evidence events
       </p>
 
       {/* Concept grid */}

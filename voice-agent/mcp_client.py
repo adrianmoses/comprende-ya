@@ -19,24 +19,28 @@ def _get_client() -> Client:
 
 
 def _parse_result(result: Any) -> Any:
-    """Extract usable data from MCP call_tool result.
+    """Extract usable data from a CallToolResult.
 
-    fastmcp returns a list of content objects; we extract the first text
-    content and parse it as JSON.
+    call_tool() always returns CallToolResult with:
+      - .content: list[TextContent | ...]
+      - .structuredContent: dict | None
     """
-    if isinstance(result, (dict, list)):
+    from mcp.types import CallToolResult
+
+    if not isinstance(result, CallToolResult):
+        logger.warning("_parse_result: unexpected type %s", type(result).__name__)
         return result
-    # fastmcp returns list[TextContent | ...]; grab first text block
-    if isinstance(result, list) and len(result) > 0:
-        first = result[0]
-        text = getattr(first, "text", None)
-        if text:
+
+    if result.structuredContent is not None:
+        return result.structuredContent
+
+    for block in result.content:
+        text = getattr(block, "text", None)
+        if text is not None:
             return json.loads(text)
-    # single TextContent
-    text = getattr(result, "text", None)
-    if text:
-        return json.loads(text)
-    return result
+
+    logger.warning("_parse_result: no parseable content in %s", result)
+    return {}
 
 
 async def plan_session(learner_id: str, duration_min: float = 30.0) -> dict:

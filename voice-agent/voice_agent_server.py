@@ -1,19 +1,59 @@
 import asyncio
 import logging
-import re
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
-import json
-from datetime import datetime
-from faster_whisper import WhisperModel
-from openai import AsyncOpenAI
-import subprocess
-import tempfile
 import os
+import re
 
-import mcp_client
-from session_manager import SessionManager
+
+def _ensure_nvidia_lib_path() -> None:
+    """Add pip-installed NVIDIA lib dirs to LD_LIBRARY_PATH and re-exec if needed.
+
+    ctranslate2 (used by faster-whisper) loads libcublas via dlopen, which reads
+    LD_LIBRARY_PATH at process startup.  Pip-installed nvidia-cublas-cu12 places
+    the .so in a site-packages subdir that isn't on the default search path.
+    """
+    try:
+        import nvidia.cublas.lib
+        import nvidia.cudnn.lib
+    except ImportError:
+        return  # system CUDA install — no pip nvidia packages
+
+    dirs = []
+    for mod in (nvidia.cublas.lib, nvidia.cudnn.lib):
+        # These are namespace packages so __file__ is None; use __path__ instead
+        paths = getattr(mod, "__path__", None)
+        d = (
+            str(paths[0])
+            if paths
+            else (os.path.dirname(mod.__file__) if mod.__file__ else None)
+        )
+        if d and d not in os.environ.get("LD_LIBRARY_PATH", ""):
+            dirs.append(d)
+
+    if not dirs:
+        return  # already on path
+
+    existing = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = ":".join(dirs + ([existing] if existing else []))
+    # Re-exec so the dynamic linker sees the updated path
+    import sys
+
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
+_ensure_nvidia_lib_path()
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+import numpy as np  # noqa: E402
+import json  # noqa: E402
+from datetime import datetime  # noqa: E402
+from faster_whisper import WhisperModel  # noqa: E402
+from openai import AsyncOpenAI  # noqa: E402
+import subprocess  # noqa: E402
+import tempfile  # noqa: E402
+
+import mcp_client  # noqa: E402
+from session_manager import SessionManager  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +82,7 @@ whisper_model = WhisperModel(
     compute_type="float16",
 )
 logger.info("  Whisper loaded")
+logger.info(os.getenv("LD_LIBRARY_PATH", ""))
 
 # LLM via llama-server (OpenAI-compatible API)
 LLAMA_SERVER_URL = os.getenv("LLAMA_SERVER_URL", "http://localhost:8081/v1")
