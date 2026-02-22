@@ -52,6 +52,7 @@ class ConfusionPair(BaseModel):
 
 class EffectiveContext(BaseModel):
     context_id: str
+    concept_id: str | None = None  # scoped per concept when available
     effectiveness: float = 0.0
     sample_count: int = 0
 
@@ -84,3 +85,33 @@ class AssessmentResult(BaseModel):
     confusions_detected: list[dict] = []
     judge_model: str = ""
     errors: list[str] = []
+
+
+class Activity(BaseModel):
+    concept_ids: list[str]
+    concept_names: list[str] = []  # human-readable names for instruction generation
+    activity_type: str  # "drill", "conversation", "discrimination", "review"
+    context: str  # communicative context
+    instructions: str  # natural language for voice agent system prompt
+    duration_estimate_min: float
+    contrast_pair: list[str] | None = None  # for discrimination exercises
+
+
+class SessionPlan(BaseModel):
+    learner_id: str
+    session_id: str  # generated UUID
+    duration_target_min: float
+    activities: list[Activity]
+    created_at: str  # ISO 8601
+
+
+class PlannerProgress(BaseModel):
+    activity_index: int  # current activity (0-based)
+    outcome_so_far: float  # average outcome for current activity
+    time_elapsed_min: float  # minutes spent on current activity
+
+
+class ReplanResult(BaseModel):
+    action: str  # "advance", "continue", "scaffold", "replace"
+    updated_activities: list[Activity]
+    reason: str

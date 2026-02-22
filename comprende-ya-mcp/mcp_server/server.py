@@ -25,6 +25,8 @@ from mcp_server.tools.assess_interaction import (
     assess_interaction as _assess_interaction,
 )
 from mcp_server.tools.learner_state import get_learner_state as _get_learner_state
+from mcp_server.tools.planner import plan_session as _plan_session
+from mcp_server.tools.planner import replan_activity as _replan_activity
 
 
 @asynccontextmanager
@@ -148,6 +150,42 @@ async def assess_interaction(
         session_id=session_id,
         turns=turns,
         target_concept_ids=target_concept_ids,
+    )
+
+
+@mcp.tool
+async def plan_session(
+    ctx: Context,
+    learner_id: str,
+    duration_min: float = 30.0,
+) -> dict:
+    """Produce a full SessionPlan for a learner.
+
+    Scores concepts by decay urgency, prerequisite readiness, and confusion opportunity.
+    Returns ordered activities (review → advance → reinforce → discrimination) with instructions.
+    """
+    pool = _get_pool(ctx)
+    return await _plan_session(pool, learner_id=learner_id, duration_min=duration_min)
+
+
+@mcp.tool
+async def replan_activity(
+    ctx: Context,
+    learner_id: str,
+    session_plan: dict,
+    progress: dict,
+) -> dict:
+    """Lightweight intra-session replanning based on current activity progress.
+
+    progress: {activity_index: int, outcome_so_far: float, time_elapsed_min: float}
+    Returns {action, updated_activities, reason}. Actions: advance, continue, scaffold, replace.
+    """
+    pool = _get_pool(ctx)
+    return await _replan_activity(
+        pool,
+        learner_id=learner_id,
+        session_plan=session_plan,
+        progress=progress,
     )
 
 
