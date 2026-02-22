@@ -37,13 +37,14 @@ async def call_judge(system_prompt: str, user_prompt: str) -> str:
             response_format={"type": "json_object"},
         )
     except APIError as e:
-        raise LLMClientError(
-            f"Judge LLM returned error: {e.status_code}: {e.message}"
-        ) from e
+        raise LLMClientError(f"Judge LLM returned error: {e}") from e
     except Exception as e:
         raise LLMClientError(f"Judge LLM request failed: {e}") from e
 
     try:
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
     except (AttributeError, IndexError) as e:
         raise LLMClientError(f"Unexpected response structure: {response}") from e
+    if content is None:
+        raise LLMClientError("Judge LLM returned empty content")
+    return content
