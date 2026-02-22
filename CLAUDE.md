@@ -55,13 +55,16 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 **Voice pipeline**: Audio bytes → STT → LLM (streaming) → TTS (sentence-level) → Audio response
 
 - **STT**: Faster-Whisper (`small` model, CUDA, float16)
-- **LLM**: llama-server (`Llama-3.2-3B-Instruct` GGUF Q8_0) via OpenAI-compatible API on `:8081`
+- **LLM (voice)**: llama-server (`Llama-3.2-3B-Instruct` GGUF Q8_0) via OpenAI-compatible API on `:8081`
+- **LLM (judge)**: llama-server (`Meta-Llama-3.1-8B-Instruct` GGUF Q4_K_M) on `:8082` — dedicated to assessment
 - **TTS**: Piper via CLI subprocess (Spanish voice model)
-- Both voice agent and MCP judge share the same llama-server instance
+- Voice agent and assessment judge use separate llama-server instances to avoid contention
 
-**Server**: FastAPI with WebSocket endpoint at `/ws/voice`
-- Receives: raw int16 audio bytes (16kHz mono)
-- Returns: N binary frames (one per sentence, streamed) + 1 JSON metrics text frame
+**Server**: FastAPI with WebSocket + REST endpoints
+- WebSocket `/ws/voice`: receives raw int16 audio, returns N binary audio frames + JSON messages
+- REST session lifecycle: `POST /session/start`, `POST /session/end`, `GET /session/state`
+- REST learner proxy: `GET /learner/profile`, `GET /learner/state`, `GET /learner/confusions`, `GET /learner/contexts`
+- Session manager (`session_manager.py`): handles structured/free modes, activity transitions, assessment firing
 
 **MCP Server**: FastMCP with PostgreSQL + Apache AGE (Cypher graph queries)
 - Concept graph: 53 B2-level Concept nodes with REQUIRES (DAG), RELATED_TO, CONTRASTS_WITH edges
@@ -73,7 +76,10 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 - Every connection requires `LOAD 'age'` — handled by pool configure callback
 
 **Webapp**: Next.js 15 with App Router
-- AudioWorklet captures mic → PCM int16 via WebSocket
+- Tabbed UI: Practice (session lifecycle + voice recording) | Progress (learner dashboard)
+- AudioWorklet captures mic → PCM int16 via WebSocket (persistent across turns)
+- Session modes: structured (plan_session → activity transitions) or free conversation
+- Hooks: `useSession` (lifecycle), `useVoiceAgent` (WebSocket + audio), `useLearnerProfile`, `useLearnerState`
 - Health check polling at `/health`
 
 ## External Dependencies
@@ -82,30 +88,46 @@ uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/ -v           # 
 - **GGUF model**: download `Llama-3.2-3B-Instruct-Q8_0.gguf` into `models/` at repo root
 - Piper TTS model expected at: `~/piper_models/es_ES-carlfm-x_low.onnx`
 - `piper` command must be in PATH
-- GPU with VRAM for llama-server (~4GB for Q8_0 3B) + Whisper
+- GPU with VRAM for llama-server voice (~3.5GB for Q8_0 3B) + llama-server judge (~5.5GB for Q4_K_M 8B) + Whisper (~1GB)
 
 ## WebSocket Protocol
 
 **Endpoint:** `ws://localhost:8765/ws/voice`
 
-1. Client sends raw `int16` audio bytes (16 kHz mono).
-2. Server replies with N+1 messages:
+1. On connect: server sends `session_plan` JSON if structured mode active.
+2. Client sends raw `int16` audio bytes (16 kHz mono).
+3. Server replies with N+1 messages per turn:
    - N binary frames: synthesized audio sentences (int16, 16 kHz, mono) — streamed as LLM generates
-   - 1 text frame: JSON `{ type, data: { stt_ms, llm_ms, tts_ms, total_ms }, transcription, response }`
+   - 1 text frame: JSON `{ type: "metrics", data: { stt_ms, llm_ms, tts_ms, total_ms }, transcription, response }`
+4. Between activities (structured mode), server may send:
+   - `{ type: "activity_change", activity_index, activity, replan_action, replan_reason, remaining_activities }`
+   - `{ type: "session_end", session_id, reason }`
 
 **Health check:** `GET /health`
 
 ## Key Files
 
-- `voice-agent/voice_agent_server.py`: Production server with real models
+- `voice-agent/voice_agent_server.py`: Production server with REST + WebSocket endpoints
+- `voice-agent/session_manager.py`: Session lifecycle (structured/free), activity transitions, assessment firing
+- `voice-agent/mcp_client.py`: MCP client wrapper (plan_session, assess_interaction, learner queries)
 - `voice-agent/voice_agent_local.py`: Pipecat-based pipeline with mock services
 - `voice-agent/test_client.py`: Interactive microphone test client
 - `voice-agent/benchmark.py`: Latency benchmarking tool
 - `voice-agent/diagnostic.py`: Component-level diagnostic
-- `webapp/hooks/useVoiceAgent.ts`: WebSocket + audio capture hook
+- `webapp/hooks/useVoiceAgent.ts`: WebSocket + audio capture hook (persistent WS, onServerMessage callback)
+- `webapp/hooks/useSession.ts`: Session lifecycle hook (start/end, mode, activity tracking)
+- `webapp/hooks/useLearnerProfile.ts`: Learner profile polling hook
+- `webapp/hooks/useLearnerState.ts`: On-demand learner state + confusions + contexts
 - `webapp/hooks/useHealthCheck.ts`: Health polling hook
-- `webapp/lib/voice-protocol.ts`: Protocol TypeScript types
+- `webapp/lib/voice-protocol.ts`: Protocol TypeScript types (metrics, session plan, activity, learner data)
 - `webapp/lib/constants.ts`: Voice agent URLs & audio constants
+- `webapp/components/PracticeView.tsx`: Session controls + recording + conversation display
+- `webapp/components/ProgressView.tsx`: Learner dashboard with mastery bars and confusion pairs
+- `webapp/components/ActivityCard.tsx`: Current activity display with timer
+- `webapp/components/ConversationTurn.tsx`: Single turn display with metrics
+- `webapp/components/ConceptCard.tsx`: Concept mastery bar with trend
+- `webapp/components/ConfusionPairCard.tsx`: Confusion pair display
+- `webapp/components/HealthIndicator.tsx`: Connection status indicator
 - `comprende-ya-mcp/mcp_server/server.py`: FastMCP server with tool registration + lifespan
 - `comprende-ya-mcp/mcp_server/db.py`: Async pool, cypher_query() helper
 - `comprende-ya-mcp/mcp_server/graph_schema.py`: AGE graph schema initialization + drop_graph helper

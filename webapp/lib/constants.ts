@@ -1,3 +1,6 @@
+export const VOICE_AGENT_BASE_URL =
+  process.env.NEXT_PUBLIC_VOICE_AGENT_BASE_URL ?? "http://localhost:8765";
+
 export const VOICE_AGENT_WS_URL =
   process.env.NEXT_PUBLIC_VOICE_AGENT_WS_URL ?? "ws://localhost:8765/ws/voice";
 

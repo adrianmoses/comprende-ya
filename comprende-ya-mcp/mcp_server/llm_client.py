@@ -6,9 +6,11 @@ import os
 
 from openai import AsyncOpenAI, APIError
 
-JUDGE_LLM_BASE_URL = os.environ.get("JUDGE_LLM_BASE_URL", "http://localhost:8081/v1")
-JUDGE_LLM_MODEL = os.environ.get("JUDGE_LLM_MODEL", "Llama-3.2-3B-Instruct-Q8_0.gguf")
-JUDGE_LLM_TIMEOUT = float(os.environ.get("JUDGE_LLM_TIMEOUT", "30.0"))
+JUDGE_LLM_BASE_URL = os.environ.get("JUDGE_LLM_BASE_URL", "http://localhost:8082/v1")
+JUDGE_LLM_MODEL = os.environ.get(
+    "JUDGE_LLM_MODEL", "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+)
+JUDGE_LLM_TIMEOUT = float(os.environ.get("JUDGE_LLM_TIMEOUT", "60.0"))
 
 _client = AsyncOpenAI(
     base_url=JUDGE_LLM_BASE_URL,

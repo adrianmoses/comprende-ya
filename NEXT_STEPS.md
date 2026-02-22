@@ -262,20 +262,21 @@ The voice agent stays simple. It follows the session plan, produces transcripts,
 
 ### Checklist — 3E
 
-- [ ] Define interaction event emission format
-- [ ] Wire voice agent to receive `SessionPlan` from planner
-- [ ] Inject activity instructions into LLM system prompt per activity
-- [ ] Emit raw events to Assessment Layer (async, non-blocking)
-- [ ] Handle intra-session replan: update system prompt when planner signals activity change
-- [ ] Update `mcp_client.py` to call new Learner Model + Planner tools
-- [ ] Remove old `record_attempt` / `get_session_context` calls
+- [x] Define interaction event emission format
+- [x] Wire voice agent to receive `SessionPlan` from planner
+- [x] Inject activity instructions into LLM system prompt per activity
+- [x] Emit raw events to Assessment Layer (async, non-blocking)
+- [x] Handle intra-session replan: update system prompt when planner signals activity change
+- [x] Update `mcp_client.py` to call new Learner Model + Planner tools
+- [x] Remove old `record_attempt` / `get_session_context` calls
+- [x] Dedicated llama-server-judge instance (8B Q4_K_M on :8082) for assessment
 
 ### 3F — Webapp Updates
 
-- [ ] Mode switching UI (structured / free conversation)
-- [ ] Progress dashboard: concepts mastered, decaying, confused pairs, trend charts
+- [x] Mode switching UI (structured / free conversation)
+- [x] Progress dashboard: concepts mastered, decaying, confused pairs, trend charts
 - [ ] Session history with evidence trail
-- [ ] Context preference display (what situations work best for this learner)
+- [x] Context preference display (what situations work best for this learner)
 
 ---
 
@@ -300,7 +301,7 @@ Package everything for reproducible local and remote deployment.
 ## Open Questions
 
 - **Model upgrade path**: When to move from Llama 3.2-3B to a larger/better model for richer conversation?
-- **Assessment LLM sizing**: Is Llama 3.2-3B sufficient for LLM-as-judge, or does assessment need a more capable model (e.g., 8B)?
+- **Assessment LLM sizing**: ~~Is Llama 3.2-3B sufficient for LLM-as-judge, or does assessment need a more capable model (e.g., 8B)?~~ Resolved: dedicated 8B judge on `:8082`, 3B voice on `:8081`.
 - **Multi-user**: Single-user first, but schema supports multiple learners from the start (STUDIES/EVIDENCE edges are per-learner).
 - **Mobile**: PWA vs native? Browser audio APIs may be sufficient initially.
 - **Curriculum authoring**: Manual YAML editing vs admin UI for adding concepts?
