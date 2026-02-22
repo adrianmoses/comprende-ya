@@ -6,12 +6,8 @@ import os
 
 from openai import AsyncOpenAI, APIError
 
-JUDGE_LLM_BASE_URL = os.environ.get(
-    "JUDGE_LLM_BASE_URL", "http://localhost:8081/v1"
-)
-JUDGE_LLM_MODEL = os.environ.get(
-    "JUDGE_LLM_MODEL", "Llama-3.2-3B-Instruct-Q8_0.gguf"
-)
+JUDGE_LLM_BASE_URL = os.environ.get("JUDGE_LLM_BASE_URL", "http://localhost:8081/v1")
+JUDGE_LLM_MODEL = os.environ.get("JUDGE_LLM_MODEL", "Llama-3.2-3B-Instruct-Q8_0.gguf")
 JUDGE_LLM_TIMEOUT = float(os.environ.get("JUDGE_LLM_TIMEOUT", "30.0"))
 
 _client = AsyncOpenAI(
@@ -50,6 +46,4 @@ async def call_judge(system_prompt: str, user_prompt: str) -> str:
     try:
         return response.choices[0].message.content
     except (AttributeError, IndexError) as e:
-        raise LLMClientError(
-            f"Unexpected response structure: {response}"
-        ) from e
+        raise LLMClientError(f"Unexpected response structure: {response}") from e

@@ -48,8 +48,12 @@ export function useVoiceAgent() {
             float32[i] = int16[i] / 32768;
           }
 
+          // Lazily create playback context for each turn
+          if (!playbackCtxRef.current) {
+            playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
+            playbackEndTimeRef.current = 0;
+          }
           const ctx = playbackCtxRef.current;
-          if (!ctx) return;
 
           const buffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
           buffer.getChannelData(0).set(float32);
@@ -85,14 +89,9 @@ export function useVoiceAgent() {
         setState((s) => ({ ...s, error: "WebSocket connection failed" }));
       };
 
-      // Wait for WebSocket to open, then create playback context
+      // Wait for WebSocket to open
       await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => {
-          const playbackCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
-          playbackCtxRef.current = playbackCtx;
-          playbackEndTimeRef.current = 0;
-          resolve();
-        };
+        ws.onopen = () => resolve();
         ws.onerror = () => reject(new Error("WebSocket connection failed"));
       });
 

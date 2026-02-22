@@ -290,9 +290,7 @@ async def voice_websocket(websocket: WebSocket):
                 )
             )
 
-            logger.info(
-                f"TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60
-            )
+            logger.info(f"TOTAL: {metrics.total_time * 1000:.0f}ms\n" + "=" * 60)
 
     except WebSocketDisconnect:
         logger.info("Client disconnected")
@@ -329,7 +327,9 @@ async def warmup():
             if attempt == max_retries:
                 logger.error(f"  LLM warmup failed after {max_retries} attempts: {e}")
                 raise
-            logger.info(f"  LLM not ready (attempt {attempt}/{max_retries}), retrying in 3s...")
+            logger.info(
+                f"  LLM not ready (attempt {attempt}/{max_retries}), retrying in 3s..."
+            )
             await asyncio.sleep(3)
 
     # TTS warmup
