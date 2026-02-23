@@ -72,5 +72,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - run: uv sync --package comprende-ya-mcp --no-install-workspace
+      - run: uv sync --package comprende-ya-mcp
       - run: uv run --package comprende-ya-mcp python -c "import fastapi; import pydantic; import psycopg; print('MCP server imports OK')"
