@@ -91,7 +91,9 @@ llm_client = AsyncOpenAI(base_url=LLAMA_SERVER_URL, api_key="not-needed")
 logger.info(f"  LLM client: {LLAMA_SERVER_URL}")
 
 # Piper TTS
-PIPER_MODEL_PATH = os.path.expanduser("~/piper_models/es_ES-carlfm-x_low.onnx")
+PIPER_MODEL_PATH = os.getenv(
+    "PIPER_MODEL_PATH", os.path.expanduser("~/piper_models/es_ES-carlfm-x_low.onnx")
+)
 logger.info(f"  Piper TTS: {PIPER_MODEL_PATH}")
 logger.info("All models/clients ready!")
 
