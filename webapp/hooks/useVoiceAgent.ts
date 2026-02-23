@@ -36,6 +36,20 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
   // Playback state for sequential audio queue
   const playbackCtxRef = useRef<AudioContext | null>(null);
   const playbackEndTimeRef = useRef<number>(0);
+  const playbackCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelPlayback = useCallback(() => {
+    if (playbackCleanupRef.current) {
+      clearTimeout(playbackCleanupRef.current);
+      playbackCleanupRef.current = null;
+    }
+    const ctx = playbackCtxRef.current;
+    if (ctx && ctx.state !== "closed") {
+      ctx.close().catch(() => {});
+    }
+    playbackCtxRef.current = null;
+    playbackEndTimeRef.current = 0;
+  }, []);
 
   const connectWs = useCallback(() => {
     const existing = wsRef.current;
@@ -103,12 +117,18 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
           if (ctx) {
             const remaining = playbackEndTimeRef.current - ctx.currentTime;
             if (remaining > 0) {
-              setTimeout(() => ctx.close(), remaining * 1000 + 100);
+              playbackCleanupRef.current = setTimeout(() => {
+                if (ctx.state !== "closed") ctx.close().catch(() => {});
+                if (playbackCtxRef.current === ctx) {
+                  playbackCtxRef.current = null;
+                  playbackEndTimeRef.current = 0;
+                }
+              }, remaining * 1000 + 100);
             } else {
-              ctx.close();
+              ctx.close().catch(() => {});
+              playbackCtxRef.current = null;
+              playbackEndTimeRef.current = 0;
             }
-            playbackCtxRef.current = null;
-            playbackEndTimeRef.current = 0;
           }
         }
 
@@ -138,6 +158,9 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
 
   const startRecording = useCallback(async () => {
     try {
+      // Cancel any in-flight playback from the previous turn
+      cancelPlayback();
+
       setState((s) => ({ ...s, error: null, recording: true }));
 
       // Ensure WebSocket is connected (connectWs is a no-op if already OPEN/CONNECTING)
@@ -185,16 +208,14 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
       source.connect(worklet);
       worklet.connect(audioCtx.destination);
     } catch (err) {
-      playbackCtxRef.current?.close();
-      playbackCtxRef.current = null;
-      playbackEndTimeRef.current = 0;
+      cancelPlayback();
       setState((s) => ({
         ...s,
         recording: false,
         error: err instanceof Error ? err.message : "Failed to start recording",
       }));
     }
-  }, [connectWs]);
+  }, [connectWs, cancelPlayback]);
 
   const stopRecording = useCallback(() => {
     setState((s) => ({ ...s, recording: false, processing: true }));
