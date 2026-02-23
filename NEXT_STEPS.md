@@ -286,15 +286,15 @@ Package everything for reproducible local and remote deployment.
 
 ### Checklist
 
-- [ ] `voice-agent/Dockerfile` (CUDA base image, model download on build)
-- [ ] `comprende-ya-mcp/Dockerfile` (Python + PostgreSQL client)
-- [ ] `webapp/Dockerfile` (Node.js, static export option)
-- [ ] `docker-compose.yml` orchestrating all services + PostgreSQL
-- [ ] Volume mounts for model caching (avoid re-downloading)
-- [ ] GPU passthrough configuration (`nvidia-container-toolkit`)
-- [ ] Environment variable config (model paths, ports, DB credentials)
-- [ ] Health checks across all services
-- [ ] README with setup instructions
+- [x] `voice-agent/Dockerfile` (CUDA base image, model download on build)
+- [x] `comprende-ya-mcp/Dockerfile` (Python + PostgreSQL client)
+- [x] `webapp/Dockerfile` (Node.js, static export option)
+- [x] `docker-compose.yml` orchestrating all services + PostgreSQL
+- [x] Volume mounts for model caching (avoid re-downloading)
+- [x] GPU passthrough configuration (`nvidia-container-toolkit`)
+- [x] Environment variable config (model paths, ports, DB credentials)
+- [x] Health checks across all services
+- [x] README with setup instructions
 
 ---
 

@@ -1,116 +1,127 @@
 # Comprende Ya
 
-Spanish learning app powered by local AI. Real-time voice conversation with a **STT → LLM → TTS** pipeline, all running on-device.
+Spanish learning app powered by local AI. Voice agent with STT/LLM/TTS pipeline, knowledge graph curriculum planner, and web client — all running on-device.
+
+## Quick Start (Docker)
+
+### Prerequisites
+
+- Docker with Compose v2
+- NVIDIA GPU with [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+- ~10GB VRAM (3.5GB voice LLM + 5.5GB judge LLM + 1GB Whisper)
+
+### 1. Download models
+
+**GGUF models** — place in `models/`:
+
+```bash
+# Voice LLM (3B, Q8_0)
+huggingface-cli download bartowski/Llama-3.2-3B-Instruct-GGUF \
+  Llama-3.2-3B-Instruct-Q8_0.gguf --local-dir models/
+
+# Judge LLM (8B, Q4_K_M)
+huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
+  Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf --local-dir models/
+```
+
+**Piper TTS model** — place in `models/piper/`:
+
+```bash
+mkdir -p models/piper
+wget -P models/piper/ \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx.json
+```
+
+### 2. Start everything
+
+```bash
+docker compose up -d
+```
+
+This starts all 6 services:
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `age` | 5455 | PostgreSQL + Apache AGE (knowledge graph) |
+| `llama-server` | 8081 | Voice LLM (Llama 3.2-3B, Q8_0) |
+| `llama-server-judge` | 8082 | Assessment judge LLM (Llama 3.1-8B, Q4_K_M) |
+| `mcp-server` | 8001 | MCP server (curriculum + learner model) |
+| `voice-agent` | 8765 | Voice pipeline (Whisper STT → LLM → Piper TTS) |
+| `webapp` | 3000 | Next.js web client |
+
+### 3. Seed the concept graph (first run only)
+
+```bash
+docker compose exec mcp-server python -m mcp_server.b2_seed
+```
+
+### 4. Open the app
+
+Navigate to [http://localhost:3000](http://localhost:3000).
+
+### Verify
+
+```bash
+docker compose ps              # All services healthy
+curl http://localhost:8765/health  # Voice agent
+curl http://localhost:8001/        # MCP server
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` to customize. Available options:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LLAMA_MODEL` | `Llama-3.2-3B-Instruct-Q8_0.gguf` | Voice LLM model file |
+| `JUDGE_MODEL` | `Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf` | Judge LLM model file |
+| `LEARNER_ID` | `default_learner` | Learner identifier |
+
+## Architecture
+
+```
+Browser ←→ Webapp (Next.js :3000)
+              ↓
+Voice Agent (FastAPI :8765)
+  ├── Whisper STT (CUDA)
+  ├── llama-server (3B LLM :8081)
+  ├── Piper TTS
+  └── MCP Server (FastMCP :8001)
+        ├── AGE Graph DB (:5455)
+        └── llama-server Judge (8B LLM :8082)
+```
 
 ## Monorepo Structure
 
 ```
 comprende-ya/
-├── voice-agent/        # Python voice pipeline (Whisper + Llama + Piper)
-├── webapp/             # Next.js web client
-├── shared/             # Shared TypeScript types & constants
+├── voice-agent/        # STT → LLM → TTS pipeline (Python/uv)
+├── webapp/             # Next.js web client (pnpm)
 ├── comprende-ya-mcp/   # Knowledge graph MCP server (FastMCP + PostgreSQL/AGE)
+├── models/             # GGUF + Piper model files (gitignored)
 ├── pyproject.toml      # Root uv workspace
-└── docker-compose.yml  # (Phase 4)
+└── docker-compose.yml  # Full stack orchestration
 ```
 
-## Features
+## Local Development (without Docker)
 
-- **Fully local** — no cloud API calls; all inference runs on your GPU
-- **Low latency** — optimized for sub-second turn-around
-- **Browser UI** — record audio, see transcription + response, view latency metrics
-- **WebSocket API** — stream raw audio in, get audio + JSON metrics back
-
-## Architecture
-
-```
-Browser ──► WebSocket ──► Faster-Whisper (STT)
-                                │
-                                ▼
-                          Llama 3.2-3B (LLM)
-                                │
-                                ▼
-                          Piper TTS ──► Browser
-```
-
-| Component | Model / Tool | Details |
-|-----------|-------------|---------|
-| **STT** | Faster-Whisper (`small`) | CUDA, float16, VAD filter, beam size 5 |
-| **LLM** | `meta-llama/Llama-3.2-3B-Instruct` via vLLM | half precision, 512-token context |
-| **TTS** | Piper (`es_ES-carlfm-x_low`) | CLI subprocess |
-| **Server** | FastAPI + Uvicorn | WebSocket at `/ws/voice`, health at `/health` |
-| **Client** | Next.js 15 + AudioWorklet | PCM int16 capture via AudioWorklet |
-
-## Requirements
-
-- Python 3.12+
-- Node.js 22+ with pnpm
-- NVIDIA GPU with **10 GB+ VRAM**
-- [uv](https://docs.astral.sh/uv/) package manager
-- `piper` CLI installed and on PATH
-- Piper voice model at `~/piper_models/es_ES-carlfm-x_low.onnx`
-
-## Setup
+See [CLAUDE.md](CLAUDE.md) for individual service commands.
 
 ```bash
-# Install Python deps (from repo root)
+# Install Python deps
 uv sync --all-packages
 
 # Install webapp deps
 cd webapp && pnpm install
-```
 
-## Usage
+# Start infrastructure only
+docker compose up -d age llama-server llama-server-judge
 
-### Start the voice agent
-
-```bash
+# Start services manually
+uv run --package comprende-ya-mcp python -m mcp_server.server
 uv run --package voice-agent python voice-agent/voice_agent_server.py
-```
-
-Starts on `0.0.0.0:8765`. Models load at startup (vLLM first, then Whisper).
-
-### Start the web client
-
-```bash
 cd webapp && pnpm dev
-```
-
-Opens on `http://localhost:3000`. Shows a health indicator (green when voice agent is running). Click the record button to capture audio and send it to the voice agent.
-
-### Start the judge LLM (for assessment)
-
-The assessment layer uses a separate vLLM instance as an LLM-as-judge to score learner utterances against concept mastery signals.
-
-```bash
-vllm serve meta-llama/Llama-3.2-3B-Instruct \
-  --port 8002 \
-  --gpu-memory-utilization 0.4 \
-  --max-model-len 4096 \
-  --dtype half
-```
-
-Listens on `http://localhost:8002` (OpenAI-compatible API). Configure via environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JUDGE_LLM_BASE_URL` | `http://localhost:8002/v1` | Base URL for the judge LLM API |
-| `JUDGE_LLM_MODEL` | `meta-llama/Llama-3.2-3B-Instruct` | Model name sent in requests |
-| `JUDGE_LLM_TIMEOUT` | `30.0` | Request timeout in seconds |
-
-> **Note:** If you're already running vLLM for the voice agent on port 8765, the judge needs its own instance on a separate port. Adjust `--gpu-memory-utilization` so both fit in VRAM.
-
-### CLI tools
-
-```bash
-# Test with microphone
-uv run --package voice-agent python voice-agent/test_client.py
-
-# Benchmark latency
-uv run --package voice-agent python voice-agent/benchmark.py
-
-# Run diagnostics
-uv run --package voice-agent python voice-agent/diagnostic.py
 ```
 
 ## WebSocket Protocol
@@ -118,23 +129,10 @@ uv run --package voice-agent python voice-agent/diagnostic.py
 **Endpoint:** `ws://localhost:8765/ws/voice`
 
 1. Client sends raw `int16` audio bytes (16 kHz, mono).
-2. Server replies with:
-   - **Binary frame** — synthesized audio (int16, 16 kHz, mono)
-   - **Text frame** — JSON metrics:
-     ```json
-     {
-       "type": "metrics",
-       "data": { "stt_ms": 120.5, "llm_ms": 85.3, "tts_ms": 200.1, "total_ms": 406.2 },
-       "transcription": "Hola, ¿cómo estás?",
-       "response": "¡Muy bien, gracias!"
-     }
-     ```
+2. Server replies with N binary frames (audio sentences) + 1 JSON metrics frame.
+3. Structured mode sends additional `activity_change` and `session_end` messages.
 
-**Health check:** `GET /health` → `{"status": "ok", "gpu": "<device name>"}`
-
-## Important: Model Loading Order
-
-vLLM **must** be loaded before Faster-Whisper. vLLM spawns child processes that need CUDA initialization before any CUDA context exists in the parent process.
+See [CLAUDE.md](CLAUDE.md) for full protocol details.
 
 ## Next Steps
 

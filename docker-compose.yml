@@ -2,6 +2,7 @@ services:
   age:
     image: apache/age
     container_name: comprende-ya-age
+    restart: unless-stopped
     environment:
       POSTGRES_USER: comprende
       POSTGRES_PASSWORD: comprende_dev
@@ -19,6 +20,7 @@ services:
   llama-server:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
     container_name: comprende-ya-llama
+    restart: unless-stopped
     ports:
       - "8081:8081"
     volumes:
@@ -46,6 +48,7 @@ services:
   llama-server-judge:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
     container_name: comprende-ya-llama-judge
+    restart: unless-stopped
     ports:
       - "8082:8082"
     volumes:
@@ -70,5 +73,82 @@ services:
       retries: 10
       start_period: 60s
 
+  mcp-server:
+    build:
+      context: .
+      dockerfile: comprende-ya-mcp/Dockerfile
+    container_name: comprende-ya-mcp-server
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      AGE_HOST: age
+      AGE_PORT: "5432"
+      AGE_USER: comprende
+      AGE_PASSWORD: comprende_dev
+      AGE_DB: comprende_ya
+      JUDGE_LLM_BASE_URL: http://llama-server-judge:8082/v1
+    depends_on:
+      age:
+        condition: service_healthy
+      llama-server-judge:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  voice-agent:
+    build:
+      context: .
+      dockerfile: voice-agent/Dockerfile
+    container_name: comprende-ya-voice-agent
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ${PIPER_MODELS_DIR:-./models/piper}:/models/piper:ro
+      - whisper_cache:/models/whisper
+    environment:
+      LLAMA_SERVER_URL: http://llama-server:8081/v1
+      LLAMA_MODEL: ${LLAMA_MODEL:-Llama-3.2-3B-Instruct-Q8_0.gguf}
+      MCP_SERVER_URL: http://mcp-server:8001/mcp
+      PIPER_MODEL_PATH: /models/piper/es_ES-carlfm-x_low.onnx
+      HF_HOME: /models/whisper
+      LEARNER_ID: ${LEARNER_ID:-default_learner}
+    depends_on:
+      mcp-server:
+        condition: service_healthy
+      llama-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8765/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  webapp:
+    build:
+      context: webapp
+      dockerfile: Dockerfile
+    container_name: comprende-ya-webapp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      voice-agent:
+        condition: service_healthy
+
 volumes:
   age_data:
+  whisper_cache:

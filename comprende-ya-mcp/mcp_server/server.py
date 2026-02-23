@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastmcp import Context, FastMCP
+from starlette.responses import JSONResponse
 
 from mcp_server.db import create_pool
 from mcp_server.graph_schema import init_schema
@@ -44,6 +45,11 @@ mcp = FastMCP(
     "comprende-ya-mcp",
     lifespan=lifespan,
 )
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request):
+    return JSONResponse({"status": "ok"})
 
 
 def _get_pool(ctx: Context) -> Any:

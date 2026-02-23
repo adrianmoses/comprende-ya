@@ -1,0 +1,13 @@
+.git
+node_modules
+.next
+__pycache__
+*.pyc
+.venv
+models/*.gguf
+*.wav
+.env
+.env.local
+.pytest_cache
+.mypy_cache
+.ruff_cache

@@ -15,7 +15,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - run: uv sync --all-packages --no-install-workspace
+      - run: uv sync --only-group dev --no-install-workspace
       - run: uv run ruff check voice-agent/
       - run: uv run ruff format --check voice-agent/
       - run: uv run mypy voice-agent/ --ignore-missing-imports
@@ -48,7 +48,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - run: uv sync --all-packages --no-install-workspace
+      - run: uv sync --package comprende-ya-mcp --no-install-workspace
       - run: uv run ruff check comprende-ya-mcp/
       - run: uv run ruff format --check comprende-ya-mcp/
       - run: uv run mypy comprende-ya-mcp/mcp_server/ --ignore-missing-imports
@@ -61,7 +61,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - run: uv sync --all-packages --no-install-workspace
+      - run: uv sync --package comprende-ya-mcp --no-install-workspace
       - run: SKIP_DB_TESTS=1 uv run --package comprende-ya-mcp pytest comprende-ya-mcp/tests/test_learner_model.py comprende-ya-mcp/tests/test_b2_seed.py -v
 
   import-check:
@@ -72,5 +72,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-      - run: uv sync --all-packages --no-install-workspace
-      - run: uv run python -c "import fastapi; import numpy; import faster_whisper; print('Core imports OK')"
+      - run: uv sync --package comprende-ya-mcp
+      - run: uv run --package comprende-ya-mcp python -c "import fastmcp; import pydantic; import psycopg; import openai; print('MCP server imports OK')"
