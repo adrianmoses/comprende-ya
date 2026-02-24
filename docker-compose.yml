@@ -109,7 +109,7 @@ services:
     ports:
       - "8765:8765"
     volumes:
-      - ${PIPER_MODELS_DIR:-./models/piper}:/models/piper:ro
+      - ${PIPER_MODELS_DIR:-~/piper_models}:/models/piper:ro
       - whisper_cache:/models/whisper
     environment:
       LLAMA_SERVER_URL: http://llama-server:8081/v1
