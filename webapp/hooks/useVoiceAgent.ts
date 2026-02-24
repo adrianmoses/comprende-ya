@@ -84,13 +84,14 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
           float32[i] = int16[i] / 32768;
         }
 
-        // Lazily create playback context for each turn
+        // Lazily create playback context for each turn (use default HW rate)
         if (!playbackCtxRef.current) {
-          playbackCtxRef.current = new AudioContext({ sampleRate: SAMPLE_RATE });
+          playbackCtxRef.current = new AudioContext();
           playbackEndTimeRef.current = 0;
         }
         const ctx = playbackCtxRef.current;
 
+        // Create buffer at source sample rate — browser resamples to HW rate
         const buffer = ctx.createBuffer(1, float32.length, SAMPLE_RATE);
         buffer.getChannelData(0).set(float32);
         const source = ctx.createBufferSource();
@@ -112,23 +113,18 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
             processing: false,
           }));
 
-          // Close playback context after last audio finishes
+          // Close playback context after all queued audio finishes
           const ctx = playbackCtxRef.current;
           if (ctx) {
             const remaining = playbackEndTimeRef.current - ctx.currentTime;
-            if (remaining > 0) {
-              playbackCleanupRef.current = setTimeout(() => {
-                if (ctx.state !== "closed") ctx.close().catch(() => {});
-                if (playbackCtxRef.current === ctx) {
-                  playbackCtxRef.current = null;
-                  playbackEndTimeRef.current = 0;
-                }
-              }, remaining * 1000 + 100);
-            } else {
-              ctx.close().catch(() => {});
-              playbackCtxRef.current = null;
-              playbackEndTimeRef.current = 0;
-            }
+            const delayMs = Math.max(remaining, 0) * 1000 + 200;
+            playbackCleanupRef.current = setTimeout(() => {
+              if (ctx.state !== "closed") ctx.close().catch(() => {});
+              if (playbackCtxRef.current === ctx) {
+                playbackCtxRef.current = null;
+                playbackEndTimeRef.current = 0;
+              }
+            }, delayMs);
           }
         }
 

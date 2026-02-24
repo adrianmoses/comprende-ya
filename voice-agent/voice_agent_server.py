@@ -77,7 +77,7 @@ logger.info("Loading models...")
 # Whisper STT
 logger.info("  - Loading Whisper...")
 whisper_model = WhisperModel(
-    "small",
+    "medium",
     device="cuda",
     compute_type="float16",
 )
@@ -102,7 +102,7 @@ logger.info("All models/clients ready!")
 # FUNCTIONS
 # ============================================
 
-SENTENCE_ENDINGS = re.compile(r"[.!?](?:\s+|$)")
+SENTENCE_ENDINGS = re.compile(r"[.!?:;](?:\s+|$)")
 
 LEARNER_ID = os.getenv("LEARNER_ID", "default_learner")
 
@@ -118,10 +118,11 @@ async def transcribe_audio(audio_bytes):
         segments, info = whisper_model.transcribe(
             audio_np,
             language="es",
-            beam_size=5,
+            beam_size=1,
             vad_filter=True,
             temperature=0.0,
-            initial_prompt="Hola, ¿cómo estás? Soy un asistente de español.",
+            no_speech_threshold=0.6,
+            condition_on_previous_text=False,
         )
         return " ".join([segment.text for segment in segments]).strip()
 
@@ -133,8 +134,6 @@ async def text_to_speech(text):
 
     if not text or len(text) < 2:
         return np.zeros(8000, dtype=np.int16).tobytes()
-
-    text = text[:200]  # Limit length
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
         tmp_path = tmp_file.name
@@ -153,7 +152,7 @@ async def text_to_speech(text):
 
         stdout, stderr = await asyncio.wait_for(
             process.communicate(input=text.encode("utf-8")),
-            timeout=5.0,
+            timeout=10.0,
         )
 
         if process.returncode != 0:
@@ -196,8 +195,7 @@ async def stream_and_speak(websocket, user_text, system_prompt):
         ],
         temperature=0.7,
         top_p=0.9,
-        max_tokens=60,
-        stop=["\n\n"],
+        max_tokens=150,
     )
 
     async for chunk in stream:

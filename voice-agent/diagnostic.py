@@ -52,7 +52,13 @@ whisper_model = WhisperModel("medium", device="cuda", compute_type="float16")
 audio_np = audio.flatten().astype(np.float32) / 32768.0
 
 segments, info = whisper_model.transcribe(
-    audio_np, language="es", beam_size=5, vad_filter=True, temperature=0.0
+    audio_np,
+    language="es",
+    beam_size=1,
+    vad_filter=True,
+    temperature=0.0,
+    no_speech_threshold=0.6,
+    condition_on_previous_text=False,
 )
 
 transcription = " ".join([segment.text for segment in segments]).strip()
