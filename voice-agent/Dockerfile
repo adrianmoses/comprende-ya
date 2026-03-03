@@ -57,4 +57,4 @@ ENV HF_HOME="/models/whisper"
 
 EXPOSE 8765
 
-CMD ["python", "voice_agent_server.py"]
+CMD ["python", "voice_agent_pipecat.py"]

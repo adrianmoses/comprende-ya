@@ -62,11 +62,12 @@ export function PracticeView({ health }: PracticeViewProps) {
     setActivityElapsed(0);
     const plan = await startSession(mode);
     if (plan !== null) {
-      voice.connectWs();
+      voice.startStreaming();
     }
   };
 
   const handleEnd = async () => {
+    voice.stopStreaming();
     voice.disconnectWs();
     await endSession();
   };
@@ -155,28 +156,26 @@ export function PracticeView({ health }: PracticeViewProps) {
         ))}
       </div>
 
-      {/* Record button */}
-      <button
-        onClick={voice.recording ? voice.stopRecording : voice.startRecording}
-        disabled={voice.processing || !health.connected}
-        className={`flex h-20 w-20 items-center justify-center rounded-full text-2xl transition-all
-          ${
-            voice.recording
-              ? "bg-red-600 shadow-lg shadow-red-600/30 animate-pulse"
-              : voice.processing
-                ? "bg-zinc-700 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 cursor-pointer"
-          }`}
-      >
-        {voice.processing ? "..." : voice.recording ? "\u23F9" : "\u{1F3A4}"}
-      </button>
-      <p className="text-xs text-zinc-500">
-        {voice.processing
-          ? "Processing..."
-          : voice.recording
-            ? "Recording — click to stop"
-            : "Click to speak"}
-      </p>
+      {/* Mute/unmute toggle */}
+      {voice.streaming && (
+        <>
+          <button
+            onClick={voice.toggleMute}
+            disabled={!health.connected}
+            className={`flex h-20 w-20 items-center justify-center rounded-full text-2xl transition-all cursor-pointer
+              ${
+                voice.muted
+                  ? "bg-red-600 shadow-lg shadow-red-600/30"
+                  : "bg-green-600 shadow-lg shadow-green-600/30 animate-pulse"
+              }`}
+          >
+            {voice.muted ? "\u{1F507}" : "\u{1F3A4}"}
+          </button>
+          <p className="text-xs text-zinc-500">
+            {voice.muted ? "Muted — click to unmute" : "Listening — click to mute"}
+          </p>
+        </>
+      )}
 
       {/* Error */}
       {voice.error && (
