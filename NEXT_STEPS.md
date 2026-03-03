@@ -18,6 +18,7 @@ The working prototype lives in `voice-agent/`. Sub-1s latency, accurate Spanish 
 - [x] Migrated from vLLM to llama-server (llama.cpp) — single GGUF server on :8081 shared by voice agent + MCP judge
 - [x] Streaming LLM responses with sentence-level TTS flushing for lower perceived latency
 - [x] Webapp sequential audio queue for multi-frame playback
+- [x] Migrated to Pipecat pipeline with Smart Turn v3.2 for natural turn-taking (Phase 5)
 
 ---
 
@@ -295,6 +296,29 @@ Package everything for reproducible local and remote deployment.
 - [x] Environment variable config (model paths, ports, DB credentials)
 - [x] Health checks across all services
 - [x] README with setup instructions
+
+---
+
+## Phase 5 — Pipecat Pipeline + Smart Turn (Done)
+
+Migrate from the manual STT→LLM→TTS loop to Pipecat's pipeline architecture for natural turn-taking.
+
+### Checklist
+
+- [x] Custom `ComprendeSerializer` bridging webapp PCM+JSON protocol with Pipecat frames
+- [x] `TranscriptionObserver` + `SessionInterceptor` FrameProcessors integrating SessionManager
+- [x] Pipecat-based server (`voice_agent_pipecat.py`) with per-connection pipeline
+- [x] Smart Turn v3.2 for automatic turn boundary detection (no press-to-talk)
+- [x] SileroVAD for speech activity detection
+- [x] Shared Pipecat services (WhisperSTT, OpenAILLM, PiperTTS) across connections
+- [x] Webapp continuous audio streaming (replaced chunked press-to-talk)
+- [x] Mute/unmute toggle UI (replaced record/stop button)
+- [x] Lifespan-based warmup with health endpoint ready gating (503 during warmup)
+- [x] Warmup indicator in webapp (pulsing yellow "Warming up models...")
+- [x] Updated Dockerfile CMD to use Pipecat server
+- [x] Dependencies: `pipecat-ai[whisper,piper,websocket,local-smart-turn-v3]>=0.0.103`
+- [ ] Adapt `test_client.py` for continuous streaming mode
+- [ ] Compare latency metrics with old server
 
 ---
 
