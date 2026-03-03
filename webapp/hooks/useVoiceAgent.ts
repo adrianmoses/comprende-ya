@@ -5,8 +5,8 @@ import { VOICE_AGENT_WS_URL, SAMPLE_RATE } from "@/lib/constants";
 import type { ServerMessage, VoiceResponse } from "@/lib/voice-protocol";
 
 export interface VoiceAgentState {
-  recording: boolean;
-  processing: boolean;
+  streaming: boolean;
+  muted: boolean;
   lastResponse: VoiceResponse | null;
   error: string | null;
   wsConnected: boolean;
@@ -18,8 +18,8 @@ interface UseVoiceAgentOptions {
 
 export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
   const [state, setState] = useState<VoiceAgentState>({
-    recording: false,
-    processing: false,
+    streaming: false,
+    muted: false,
     lastResponse: null,
     error: null,
     wsConnected: false,
@@ -29,7 +29,6 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const workletRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<ArrayBuffer[]>([]);
   const onServerMessageRef = useRef(options.onServerMessage);
   onServerMessageRef.current = options.onServerMessage;
 
@@ -110,7 +109,6 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
           setState((s) => ({
             ...s,
             lastResponse: data as VoiceResponse,
-            processing: false,
           }));
 
           // Close playback context after all queued audio finishes
@@ -152,14 +150,11 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
     setState((s) => ({ ...s, wsConnected: false }));
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startStreaming = useCallback(async () => {
     try {
-      // Cancel any in-flight playback from the previous turn
-      cancelPlayback();
+      setState((s) => ({ ...s, error: null, streaming: true, muted: false }));
 
-      setState((s) => ({ ...s, error: null, recording: true }));
-
-      // Ensure WebSocket is connected (connectWs is a no-op if already OPEN/CONNECTING)
+      // Ensure WebSocket is connected
       connectWs();
       if (wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
         await new Promise<void>((resolve, reject) => {
@@ -196,51 +191,54 @@ export function useVoiceAgent(options: UseVoiceAgentOptions = {}) {
       const worklet = new AudioWorkletNode(audioCtx, "pcm-processor");
       workletRef.current = worklet;
 
-      chunksRef.current = [];
+      // Send each PCM chunk immediately (continuous streaming)
       worklet.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
-        chunksRef.current.push(e.data);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(e.data);
+        }
       };
 
       source.connect(worklet);
       worklet.connect(audioCtx.destination);
     } catch (err) {
-      cancelPlayback();
       setState((s) => ({
         ...s,
-        recording: false,
-        error: err instanceof Error ? err.message : "Failed to start recording",
+        streaming: false,
+        error: err instanceof Error ? err.message : "Failed to start streaming",
       }));
     }
-  }, [connectWs, cancelPlayback]);
+  }, [connectWs]);
 
-  const stopRecording = useCallback(() => {
-    setState((s) => ({ ...s, recording: false, processing: true }));
-
+  const stopStreaming = useCallback(() => {
     // Stop mic
     streamRef.current?.getTracks().forEach((t) => t.stop());
     workletRef.current?.disconnect();
-    audioCtxRef.current?.close();
+    audioCtxRef.current?.close().catch(() => {});
+    streamRef.current = null;
+    workletRef.current = null;
+    audioCtxRef.current = null;
 
-    // Merge chunks and send
-    const chunks = chunksRef.current;
-    if (chunks.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-      const totalLen = chunks.reduce((acc, c) => acc + c.byteLength, 0);
-      const merged = new Uint8Array(totalLen);
-      let offset = 0;
-      for (const chunk of chunks) {
-        merged.set(new Uint8Array(chunk), offset);
-        offset += chunk.byteLength;
-      }
-      wsRef.current.send(merged.buffer);
-    }
+    cancelPlayback();
+    setState((s) => ({ ...s, streaming: false, muted: false }));
+  }, [cancelPlayback]);
 
-    chunksRef.current = [];
+  const toggleMute = useCallback(() => {
+    const stream = streamRef.current;
+    if (!stream) return;
+
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+
+    const willMute = track.enabled; // currently enabled → will mute
+    track.enabled = !willMute;
+    setState((s) => ({ ...s, muted: willMute }));
   }, []);
 
   return {
     ...state,
-    startRecording,
-    stopRecording,
+    startStreaming,
+    stopStreaming,
+    toggleMute,
     connectWs,
     disconnectWs,
   };
