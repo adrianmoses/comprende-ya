@@ -1,0 +1,23 @@
+[project]
+name = "comprende-ya"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.15.0",
+    "anthropic>=0.72.0",
+    "fastapi[standard]>=0.121.0",
+    "google-api-python-client>=2.187.0",
+    "isodate>=0.7.2",
+    "openai>=2.7.1",
+    "pip>=25.3",
+    "prefect>=3.5.0",
+    "psycopg2-binary>=2.9.10",
+    "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.20",
+    "spacy[cuda12x]>=3.8.11",
+    "sqlmodel>=0.0.27",
+    "youtube-transcript-api>=1.2.3",
+    "yt-dlp>=2025.10.22",
+]
