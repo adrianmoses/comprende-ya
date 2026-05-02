@@ -1,8 +1,11 @@
-from sqlmodel import Session, select
-from typing import Optional, List
 import json
-from models.database import Video, Question as DBQuestion, FraseExercise
-from models.schemas import VideoResponse, TimestampedQuestion, FillInBlankExercise
+from typing import List, Optional
+
+from sqlmodel import Session, select
+
+from models.database import FraseExercise, Video
+from models.database import Question as DBQuestion
+from models.schemas import FillInBlankExercise, TimestampedQuestion, VideoResponse
 
 
 class VideoRepository:
@@ -107,19 +110,23 @@ class VideoRepository:
             video.frase_exercises = list(self.session.exec(statement).all())
 
         # Convertir ejercicios de DB a schema
-        fill_in_blank_exercises = [
-            FillInBlankExercise(
-                id=ex.id,
-                original_text=ex.original_transcript_text,
-                exercise_text=ex.exercise_text,
-                answers=json.loads(ex.answers),
-                hints=json.loads(ex.hints),
-                start_time=ex.start_time,
-                end_time=ex.end_time,
-                difficulty=ex.difficulty,
-            )
-            for ex in video.frase_exercises
-        ] if video.frase_exercises else []
+        fill_in_blank_exercises = (
+            [
+                FillInBlankExercise(
+                    id=ex.id,
+                    original_text=ex.original_transcript_text,
+                    exercise_text=ex.exercise_text,
+                    answers=json.loads(ex.answers),
+                    hints=json.loads(ex.hints),
+                    start_time=ex.start_time,
+                    end_time=ex.end_time,
+                    difficulty=ex.difficulty,
+                )
+                for ex in video.frase_exercises
+            ]
+            if video.frase_exercises
+            else []
+        )
 
         return VideoResponse(
             video_id=video.youtube_id,

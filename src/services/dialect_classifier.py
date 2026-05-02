@@ -1,6 +1,8 @@
-import anthropic
 import json
-from typing import Optional, Dict
+from typing import Dict, Optional
+
+import anthropic
+
 from config import settings
 
 
@@ -51,7 +53,7 @@ Responde ÚNICAMENTE con JSON (sin markdown):
             message = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=1024,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
 
             response_text = message.content[0].text
@@ -78,7 +80,7 @@ Responde ÚNICAMENTE con JSON (sin markdown):
 
         if result:
             # Añadir nota de que es basado en muestra
-            result['is_sample'] = True
+            result["is_sample"] = True
 
         return result
 

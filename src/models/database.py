@@ -1,10 +1,12 @@
-from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class Video(SQLModel, table=True):
     """Modelo de base de datos para videos procesados"""
+
     __tablename__ = "videos"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -23,9 +25,9 @@ class Video(SQLModel, table=True):
     frase_exercises: List["FraseExercise"] = Relationship(back_populates="video")
 
 
-
 class Question(SQLModel, table=True):
     """Modelo de base de datos para preguntas de comprensión"""
+
     __tablename__ = "questions"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -43,6 +45,7 @@ class Question(SQLModel, table=True):
 
 class VideoSegment(SQLModel, table=True):
     """Modelo para segmentos de transcripción con timestamps"""
+
     __tablename__ = "video_segments"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -50,7 +53,7 @@ class VideoSegment(SQLModel, table=True):
     segment_number: int
     transcript_text: str
     start_time: float  # en segundos
-    end_time: float    # en segundos
+    end_time: float  # en segundos
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relación con Video
@@ -59,6 +62,7 @@ class VideoSegment(SQLModel, table=True):
 
 class AnswerProgress(SQLModel, table=True):
     """Modelo para trackear progreso de respuestas"""
+
     __tablename__ = "answer_progress"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -77,7 +81,7 @@ class FraseExercise(SQLModel, table=True):
     start_time: float
     end_time: float
     original_transcript_text: str
-    exercise_text: str # Con los blanks
+    exercise_text: str  # Con los blanks
     answers: str  # JSON string
     hints: str  # JSON string
     difficulty: str
@@ -89,6 +93,7 @@ class FraseExercise(SQLModel, table=True):
 
 class ProcessingJob(SQLModel, table=True):
     """Estado persistido de un flow de procesamiento de video."""
+
     __tablename__ = "processing_jobs"
 
     id: Optional[int] = Field(default=None, primary_key=True)

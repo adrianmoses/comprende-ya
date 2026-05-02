@@ -1,8 +1,9 @@
-from sqlmodel import Session, select
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from models.database import AnswerProgress, Question
+from sqlmodel import Session, select
+
+from models.database import AnswerProgress
 
 
 class ProgressRepository:
@@ -12,11 +13,7 @@ class ProgressRepository:
         self.session = session
 
     def save_answer(
-        self,
-        video_id: int,
-        question_id: int,
-        user_answer: int,
-        is_correct: bool
+        self, video_id: int, question_id: int, user_answer: int, is_correct: bool
     ) -> AnswerProgress:
         """
         Guarda o actualiza el progreso de una respuesta.
@@ -32,8 +29,7 @@ class ProgressRepository:
         """
         # Buscar si ya existe progreso para esta pregunta
         statement = select(AnswerProgress).where(
-            AnswerProgress.video_id == video_id,
-            AnswerProgress.question_id == question_id
+            AnswerProgress.video_id == video_id, AnswerProgress.question_id == question_id
         )
         existing = self.session.exec(statement).first()
 
@@ -52,7 +48,7 @@ class ProgressRepository:
                 video_id=video_id,
                 question_id=question_id,
                 user_answer=user_answer,
-                is_correct=is_correct
+                is_correct=is_correct,
             )
             self.session.add(progress)
             self.session.commit()
@@ -69,9 +65,7 @@ class ProgressRepository:
         Returns:
             Lista de AnswerProgress para el video
         """
-        statement = select(AnswerProgress).where(
-            AnswerProgress.video_id == video_id
-        )
+        statement = select(AnswerProgress).where(AnswerProgress.video_id == video_id)
         return list(self.session.exec(statement).all())
 
     def get_question_progress(self, video_id: int, question_id: int) -> Optional[AnswerProgress]:
@@ -86,8 +80,7 @@ class ProgressRepository:
             AnswerProgress si existe, None si no
         """
         statement = select(AnswerProgress).where(
-            AnswerProgress.video_id == video_id,
-            AnswerProgress.question_id == question_id
+            AnswerProgress.video_id == video_id, AnswerProgress.question_id == question_id
         )
         return self.session.exec(statement).first()
 
@@ -101,9 +94,7 @@ class ProgressRepository:
         Returns:
             Número de registros eliminados
         """
-        statement = select(AnswerProgress).where(
-            AnswerProgress.video_id == video_id
-        )
+        statement = select(AnswerProgress).where(AnswerProgress.video_id == video_id)
         progress_records = self.session.exec(statement).all()
 
         count = 0
@@ -132,5 +123,5 @@ class ProgressRepository:
         return {
             "answered": total_answered,
             "correct": total_correct,
-            "incorrect": total_answered - total_correct
+            "incorrect": total_answered - total_correct,
         }

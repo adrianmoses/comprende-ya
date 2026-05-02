@@ -1,5 +1,7 @@
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List, Dict
+
 
 class VideoRequest(BaseModel):
     url: HttpUrl
@@ -8,12 +10,14 @@ class VideoRequest(BaseModel):
 class Question(BaseModel):
     question: str
     answers: List[str]
-    correct_answer: int # indice de la respuesta correcta
+    correct_answer: int  # indice de la respuesta correcta
     explanation: Optional[str] = None
+
 
 class TimestampedQuestion(BaseModel):
     """Pregunta asociada a un momento del video"""
-    timestamp: float # Segundos desde el inicio
+
+    timestamp: float  # Segundos desde el inicio
     question: str
     answers: List[str]
     correct_answer: int
@@ -22,6 +26,7 @@ class TimestampedQuestion(BaseModel):
 
 class FillInBlankExercise(BaseModel):
     """Ejercicio de completar espacios en blanco"""
+
     id: Optional[int] = None
     original_text: str
     exercise_text: str  # Texto con "___" para los blanks
@@ -37,12 +42,13 @@ class VideoResponse(BaseModel):
     title: str
     duration: int
     transcript: str
-    questions: List[TimestampedQuestion] # Ahora con timestamps
+    questions: List[TimestampedQuestion]  # Ahora con timestamps
     fill_in_blank_exercises: Optional[List[FillInBlankExercise]] = None
 
 
 class TranscriptSegment(BaseModel):
     """Segmentos de transcripción ocn timestamp"""
+
     text: str
     start: float
     end: float
@@ -50,8 +56,7 @@ class TranscriptSegment(BaseModel):
 
 class DetailedTranscript(BaseModel):
     """Transcripción completa con segmentos"""
+
     full_text: str
     segments: List[TranscriptSegment]
     duration: float
-
-

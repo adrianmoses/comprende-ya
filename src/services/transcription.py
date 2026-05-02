@@ -1,10 +1,10 @@
 from openai import OpenAI
+
 from config import settings
 from models.schemas import DetailedTranscript, TranscriptSegment
 
 
 class TranscriptionService:
-
     def __init__(self) -> None:
         self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -37,16 +37,12 @@ class TranscriptionService:
                 file=audio_file,
                 language="es",
                 response_format="verbose_json",
-                timestamp_granularities=["segment"] # Segmentos (frames)
+                timestamp_granularities=["segment"],  # Segmentos (frames)
             )
 
         # Extraer segmentos
         segments = [
-            TranscriptSegment(
-                text=seg.text,
-                start=seg.start,
-                end=seg.end
-            )
+            TranscriptSegment(text=seg.text, start=seg.start, end=seg.end)
             for seg in transcript.segments
         ]
 
@@ -55,7 +51,6 @@ class TranscriptionService:
             segments=segments,
             duration=transcript.duration,
         )
-
 
 
 transcription_service = TranscriptionService()

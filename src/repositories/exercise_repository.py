@@ -1,6 +1,7 @@
-from sqlmodel import Session, select
-from typing import List, Dict
 import json
+from typing import Dict, List
+
+from sqlmodel import Session, select
 
 from models.database import FraseExercise
 
@@ -31,13 +32,13 @@ class ExerciseRepository:
         for exercise_dict in exercises_data:
             frase_exercise = FraseExercise(
                 video_id=video_id,
-                start_time=exercise_dict['start_time'],
-                end_time=exercise_dict['end_time'],
-                original_transcript_text=exercise_dict['original_transcript_text'],
-                exercise_text=exercise_dict['exercise_text'],
-                answers=json.dumps(exercise_dict['answers']),
-                hints=json.dumps(exercise_dict['hints']),
-                difficulty=exercise_dict['difficulty'],
+                start_time=exercise_dict["start_time"],
+                end_time=exercise_dict["end_time"],
+                original_transcript_text=exercise_dict["original_transcript_text"],
+                exercise_text=exercise_dict["exercise_text"],
+                answers=json.dumps(exercise_dict["answers"]),
+                hints=json.dumps(exercise_dict["hints"]),
+                difficulty=exercise_dict["difficulty"],
             )
             self.session.add(frase_exercise)
             created_exercises.append(frase_exercise)
@@ -59,9 +60,11 @@ class ExerciseRepository:
         Returns:
             Lista de FraseExercise
         """
-        statement = select(FraseExercise).where(
-            FraseExercise.video_id == video_id
-        ).order_by(FraseExercise.start_time)
+        statement = (
+            select(FraseExercise)
+            .where(FraseExercise.video_id == video_id)
+            .order_by(FraseExercise.start_time)
+        )
         return list(self.session.exec(statement).all())
 
     def delete_by_video_id(self, video_id: int) -> None:
