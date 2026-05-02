@@ -1,27 +1,26 @@
+import json
 import os
 import re
 import uuid
-import json
 from typing import List
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Query
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlmodel import Session, select
 
-from db import get_session, get_db_session
-from models.database import Video, VideoSegment, Question
-from models.schemas import VideoRequest, VideoResponse
+from db import get_db_session, get_session
 from flows.video_processing import process_video_flow
-from repositories import VideoRepository, ProcessingJobRepository
-from repositories.progress_repository import ProgressRepository
+from models.database import Question, Video, VideoSegment
+from models.schemas import VideoRequest, VideoResponse
+from repositories import ProcessingJobRepository, VideoRepository
 from repositories.classifier_repository import ClassifierRepository
+from repositories.progress_repository import ProgressRepository
+from repositories.segments_repository import SegmentsRepository
+from services.dialect_classifier import dialect_classifier
 from services.questions import question_service
 from services.transcription import transcription_service
 from services.youtube import youtube_service
-
 from services.youtube_search import youtube_search
 from services.youtube_transcript import youtube_transcript_service
-from services.dialect_classifier import dialect_classifier
-
-from repositories.segments_repository import SegmentsRepository
 
 router = APIRouter()
 
@@ -47,10 +46,11 @@ async def run_flow_background(flow_run_id: str, video_url: str, force: bool = Fa
         with get_db_session() as db:
             ProcessingJobRepository(db).mark_failed(flow_run_id, error=str(e))
 
+
 @router.get("/search")
 async def search_videos(
-        query: str = Query(..., description="Búsqueda de videos de YouTube"),
-        max_results: int = Query(10, ge=1, le=25, description="Número máximo de resultados")
+    query: str = Query(..., description="Búsqueda de videos de YouTube"),
+    max_results: int = Query(10, ge=1, le=25, description="Número máximo de resultados"),
 ):
     """
     Busca videos de YouTube por query
@@ -77,27 +77,24 @@ async def classify_video_from_search(video_id: str):
 
     if not transcript_sample:
         raise HTTPException(
-            status_code=404,
-            detail="No se encontró transcripción disponible para este video"
+            status_code=404, detail="No se encontró transcripción disponible para este video"
         )
 
     # Clasificar dialecto
     classification = dialect_classifier.classify_from_sample(transcript_sample)
 
     if not classification:
-        raise HTTPException(
-            status_code=500,
-            detail="Error al clasificar el dialecto del video"
-        )
+        raise HTTPException(status_code=500, detail="Error al clasificar el dialecto del video")
 
     return classification
 
+
 @router.post("/process-async")
 async def process_video_async(
-        request: VideoRequest,
-        background_tasks: BackgroundTasks,
-        force: bool = Query(False, description="Forzar reprocesamiento aunque el video ya exista"),
-        db: Session = Depends(get_session)
+    request: VideoRequest,
+    background_tasks: BackgroundTasks,
+    force: bool = Query(False, description="Forzar reprocesamiento aunque el video ya exista"),
+    db: Session = Depends(get_session),
 ):
     """
     Inicia procesamiento asynchronico con Prefect
@@ -106,7 +103,7 @@ async def process_video_async(
     """
 
     # Extraer YouTube video ID de la URL
-    match = re.search(r'(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)', str(request.url))
+    match = re.search(r"(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)", str(request.url))
     if not match:
         raise HTTPException(status_code=400, detail="URL de YouTube inválida")
 
@@ -138,10 +135,11 @@ async def process_video_async(
                             "answers": json.loads(q.answers),
                             "correct_answer": q.correct_answer,
                             "explanation": q.explanation,
-                        } for q in existing_video.questions
+                        }
+                        for q in existing_video.questions
                     ],
-                    "created_at": existing_video.created_at.isoformat()
-                }
+                    "created_at": existing_video.created_at.isoformat(),
+                },
             }
 
     flow_run_id = str(uuid.uuid4())
@@ -159,7 +157,7 @@ async def process_video_async(
     return {
         "flow_run_id": flow_run_id,
         "status": "PENDING",
-        "message": f"Video en procesamiento{' (forzado)' if force else ''}"
+        "message": f"Video en procesamiento{' (forzado)' if force else ''}",
     }
 
 
@@ -236,7 +234,8 @@ async def get_video(video_id: str, db: Session = Depends(get_session)):
                 "answers": json.loads(q.answers),
                 "correct_answer": q.correct_answer,
                 "explanation": q.explanation,
-            } for q in video.questions
+            }
+            for q in video.questions
         ],
         "created_at": video.created_at.isoformat(),
         "fill_in_blank_exercises": [
@@ -249,9 +248,11 @@ async def get_video(video_id: str, db: Session = Depends(get_session)):
                 "difficulty": exercise.difficulty,
                 "start_time": exercise.start_time,
                 "end_time": exercise.end_time,
-            } for exercise in video.frase_exercises
-        ]
+            }
+            for exercise in video.frase_exercises
+        ],
     }
+
 
 @router.get("/")
 async def list_videos(skip: int = 0, limit: int = 20, db: Session = Depends(get_session)):
@@ -275,16 +276,14 @@ async def list_videos(skip: int = 0, limit: int = 20, db: Session = Depends(get_
                 "duration": v.duration,
                 "questions": v.questions,
                 "created_at": v.created_at.isoformat(),
-            } for v in videos
+            }
+            for v in videos
         ]
     }
 
 
 @router.get("/{video_id}/segments")
-async def get_video_segments(
-        video_id: int,
-        session: Session = Depends(get_session)
-) -> List[dict]:
+async def get_video_segments(video_id: int, session: Session = Depends(get_session)) -> List[dict]:
     """Obtiene los segmentos de transcripción de un video"""
 
     # Verificar que el video existe
@@ -314,12 +313,15 @@ async def get_video_segments(
         for seg in segments
     ]
 
-@router.post("/process",
-             response_model=VideoResponse,
-             responses={
-                 400: {"description": "Video inválido o muy largo"},
-                 500: {"description": "Error procesando video"}
-             })
+
+@router.post(
+    "/process",
+    response_model=VideoResponse,
+    responses={
+        400: {"description": "Video inválido o muy largo"},
+        500: {"description": "Error procesando video"},
+    },
+)
 async def process_video(request: VideoRequest):
     """
     Procesa un video de YouTube: descarga, transcribe, genera preguntas
@@ -352,7 +354,7 @@ async def process_video(request: VideoRequest):
             title=metadata["title"],
             duration=metadata["duration"],
             transcript=transcript,
-            questions=questions
+            questions=questions,
         )
     except HTTPException:
         # Re-lanzar HTTPException tal cual
@@ -365,12 +367,10 @@ async def process_video(request: VideoRequest):
 
 # Progress tracking endpoints
 
+
 @router.post("/{video_id}/progress")
 async def save_progress(
-    video_id: str,
-    question_id: int,
-    user_answer: int,
-    db: Session = Depends(get_session)
+    video_id: str, question_id: int, user_answer: int, db: Session = Depends(get_session)
 ):
     """
     Guarda el progreso de una respuesta.
@@ -401,25 +401,19 @@ async def save_progress(
     # Guardar progreso
     progress_repo = ProgressRepository(db)
     progress = progress_repo.save_answer(
-        video_id=video.id,
-        question_id=question_id,
-        user_answer=user_answer,
-        is_correct=is_correct
+        video_id=video.id, question_id=question_id, user_answer=user_answer, is_correct=is_correct
     )
 
     return {
         "question_id": question_id,
         "user_answer": user_answer,
         "is_correct": is_correct,
-        "answered_at": progress.answered_at.isoformat()
+        "answered_at": progress.answered_at.isoformat(),
     }
 
 
 @router.get("/{video_id}/progress")
-async def get_progress(
-    video_id: str,
-    db: Session = Depends(get_session)
-):
+async def get_progress(video_id: str, db: Session = Depends(get_session)):
     """
     Obtiene el progreso de todas las preguntas de un video.
 
@@ -444,23 +438,16 @@ async def get_progress(
             "question_id": p.question_id,
             "user_answer": p.user_answer,
             "is_correct": p.is_correct,
-            "answered_at": p.answered_at.isoformat()
+            "answered_at": p.answered_at.isoformat(),
         }
         for p in progress_records
     ]
 
-    return {
-        "video_id": video_id,
-        "summary": summary,
-        "progress": progress_data
-    }
+    return {"video_id": video_id, "summary": summary, "progress": progress_data}
 
 
 @router.delete("/{video_id}/progress")
-async def reset_progress(
-    video_id: str,
-    db: Session = Depends(get_session)
-):
+async def reset_progress(video_id: str, db: Session = Depends(get_session)):
     """
     Resetea todo el progreso de un video.
 
@@ -481,15 +468,12 @@ async def reset_progress(
     return {
         "video_id": video_id,
         "deleted_count": deleted_count,
-        "message": "Progreso reseteado exitosamente"
+        "message": "Progreso reseteado exitosamente",
     }
 
 
 @router.get("/{video_id}/classify")
-async def classify(
-    video_id: str,
-    db: Session = Depends(get_session)
-):
+async def classify(video_id: str, db: Session = Depends(get_session)):
     # Obtener el video por YouTube ID
     video_repo = VideoRepository(db)
     video = video_repo.get_by_youtube_id(video_id)
@@ -497,12 +481,7 @@ async def classify(
     if not video:
         raise HTTPException(status_code=404, detail="Video no encontrado")
 
-
     classifier_repo = ClassifierRepository(db)
     classified = classifier_repo.classify_video(video)
 
-    return {
-        "video_id": video_id,
-        "classified": classified
-    }
-
+    return {"video_id": video_id, "classified": classified}

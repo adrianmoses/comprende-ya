@@ -1,7 +1,9 @@
-from dotenv import load_dotenv
 import os
 
+from dotenv import load_dotenv
+
 load_dotenv()
+
 
 class Settings:
     # API Keys
@@ -24,7 +26,7 @@ class Settings:
 
     # Directorios
     TEMP_DIR = "temp"
-    MAX_VIDEO_DURATION = 3600 # 1 hour
+    MAX_VIDEO_DURATION = 3600  # 1 hour
 
 
 settings = Settings()

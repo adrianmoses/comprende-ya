@@ -1,11 +1,10 @@
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import os
-from api.routes import videos
 
+from api.routes import videos
 
 load_dotenv()
 
@@ -29,6 +28,7 @@ app.add_middleware(
 
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 
+
 @app.get("/")
 async def root():
     return {"message": "Bienvenido a ComprendeYa API"}
@@ -40,5 +40,5 @@ async def health():
         "status": "ok",
         "anthropic_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
-        "database_configured": bool(os.getenv("DATABASE_URL"))
+        "database_configured": bool(os.getenv("DATABASE_URL")),
     }

@@ -1,6 +1,8 @@
-from typing import List
 import json
+from typing import List
+
 from sqlmodel import Session, select
+
 from models.database import Video, VideoSegment
 
 
@@ -42,7 +44,7 @@ class SegmentsRepository:
                 segment_number=idx,
                 transcript_text=segment["text"].strip(),
                 start_time=segment["start"],
-                end_time=segment["end"]
+                end_time=segment["end"],
             )
             self.session.add(video_segment)
             new_segments.append(video_segment)
@@ -65,9 +67,11 @@ class SegmentsRepository:
         Returns:
             Lista de VideoSegment ordenados por segment_number
         """
-        statement = select(VideoSegment).where(
-            VideoSegment.video_id == video_id
-        ).order_by(VideoSegment.segment_number)
+        statement = (
+            select(VideoSegment)
+            .where(VideoSegment.video_id == video_id)
+            .order_by(VideoSegment.segment_number)
+        )
         return list(self.session.exec(statement).all())
 
     def delete_by_video_id(self, video_id: int) -> None:

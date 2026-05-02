@@ -34,7 +34,7 @@
 | 022 | Backend: user profile + streak + weekly KPIs         | planned       | —    |
 | 023 | Tweaks panel (theme, accent, transcript size, level badges) | planned | —    |
 | 024 | Configurable difficulty for fill-in-blank exercises  | planned       | —    |
-| 025 | Test suite + linter (none today)                     | planned       | —    |
+| 025 | Test infrastructure + ruff bootstrap (pytest + DB fixture + CI) | implemented | [025-test-infrastructure/spec.md](./025-test-infrastructure/spec.md) |
 | 026 | Refresh Anthropic model IDs to current (Opus 4.7 / Sonnet 4.6 / Haiku 4.5) | planned | — |
 
 ## Status Values
@@ -50,3 +50,5 @@
 |------------|-------------------------------------------------------------|
 | 2026-05-02 | Initial roadmap inferred by audit skill. Backend features 001–010 marked `implemented`; legacy sync endpoint 011 marked `deprecated`; flow-status persistence (012) marked `in-progress` — the flow itself ships, only the polling surface needs a `processing_jobs` table. Frontend features 013–016, 020, 023 marked `planned` based on `docs/artefacts/` design bundle; backend follow-ups (017–019, 021, 022, 024, 025, 026) added as gaps surfaced in OVERVIEW audit notes. |
 | 2026-05-02 | 012 → `implemented`. `processing_jobs` table replaces the in-memory dict; `/status` response trimmed (drops `result`, adds `youtube_video_id` + `video_id`); `/flows` paginates. Shipped without automated tests — 025 (test suite bootstrap) is the next prerequisite before further backend work. |
+| 2026-05-02 | 025 → `in-progress`. Spec drafted: pytest + DB fixture (SQLite-first, Postgres-via-services-container as fallback) + monkeypatched service singletons + ruff (lint+format) + GitHub Actions. |
+| 2026-05-02 | 025 → `implemented`. SQLite path landed (one dialect guard in migration `c6440d9b9453`); 17 tests across 4 files; ruff-clean codebase after audit-flagged cleanups (duplicate `import os`, unused `create_db_and_tables`, bare except). Decision record at `025-test-infrastructure/decision.md`. |

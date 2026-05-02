@@ -1,5 +1,6 @@
-from typing import List, Dict, Tuple
 import random
+from typing import Dict, List, Tuple
+
 import spacy
 
 from models.database import VideoSegment
@@ -17,16 +18,16 @@ class FraseExerciseGeneratorService:
         self.config = {
             "facil": {
                 "num_blanks": (1, 2),  # 1-2 blanks por frase
-                "pos_tags": ["VERB", "PRON"]  # Solo verbos y sustantivos
+                "pos_tags": ["VERB", "PRON"],  # Solo verbos y sustantivos
             },
             "medio": {
                 "num_blanks": (2, 4),  # 2-4 blanks por frase
-                "pos_tags": ["VERB", "PRON", "ADP"]  # + preposiciones y adjetivos
+                "pos_tags": ["VERB", "PRON", "ADP"],  # + preposiciones y adjetivos
             },
             "dificil": {
                 "num_blanks": (3, 6),  # 3-6 blanks por frase
-                "pos_tags": ["VERB", "ADP", "PRON", "SCONJ", "CCONJ"]  # Todas las categorías
-            }
+                "pos_tags": ["VERB", "ADP", "PRON", "SCONJ", "CCONJ"],  # Todas las categorías
+            },
         }
 
     def select_words_to_blank(self, frase: str) -> List[Tuple[int, str]]:
@@ -86,14 +87,12 @@ class FraseExerciseGeneratorService:
             else:
                 priority += 5
 
-
         # MEDIA PRIORIDAD: Preposiciones dificles
         if token.pos_ == "ADP":
             if token.text in ["por", "para", "a"]:
                 priority += 7
             else:
                 priority += 4
-
 
         # MEDIA PRIORIDAD: Pronombres objeto
         if token.pos_ == "PRON" and token.dep_ in ["obj", "iobj"]:
@@ -106,14 +105,12 @@ class FraseExerciseGeneratorService:
 
         return priority
 
-
     def create_exercise(self, frase: str) -> Dict:
         """Genera una frase exercicio completo con blanks"""
         doc = self.nlp(frase)
         blanks = self.select_words_to_blank(frase)
 
         blank_dict = {idx: word for idx, word in blanks}
-
 
         tokens_with_blanks = []
         for i, token in enumerate(doc):
@@ -128,9 +125,8 @@ class FraseExerciseGeneratorService:
             "original_transcript_text": frase,
             "exercise_text": frases_con_blanks,
             "answers": {f"blank_{i}": word for i, (idx, word) in enumerate(blanks)},
-            "hints": self._generate_hints(doc, blank_dict)
+            "hints": self._generate_hints(doc, blank_dict),
         }
-
 
     def _generate_hints(self, doc, blank_dict: Dict[int, str]) -> Dict:
 
@@ -142,7 +138,7 @@ class FraseExerciseGeneratorService:
             if token.pos_ == "VERB":
                 hint_parts.append("verbo")
                 if "Subjunctive" in token.morph.get("Mood", []):
-                    hint_parts.append(f"subjuntivo")
+                    hint_parts.append("subjuntivo")
             elif token.pos_ == "ADP":
                 hint_parts.append("preposición")
             elif token.pos_ == "PRON":
@@ -152,10 +148,11 @@ class FraseExerciseGeneratorService:
 
         return hints
 
-    def generate_exercises_from_transcription(self,
-                                              transcription_segments: List[VideoSegment],
-                                              sample_rate: float = 0.1 # 10% de frases
-                                              ) -> List[Dict]:
+    def generate_exercises_from_transcription(
+        self,
+        transcription_segments: List[VideoSegment],
+        sample_rate: float = 0.1,  # 10% de frases
+    ) -> List[Dict]:
         """
         Genera ejercicios de fill-in-the-blank desde segmentos de transcription.
 
@@ -167,16 +164,17 @@ class FraseExerciseGeneratorService:
 
         # Randomly sample segments based on sample_rate
         num_to_sample = max(1, int(len(transcription_segments) * sample_rate))
-        sampled_segments: List[VideoSegment] = random.sample(transcription_segments, min(num_to_sample, len(transcription_segments)))
+        sampled_segments: List[VideoSegment] = random.sample(
+            transcription_segments,
+            min(num_to_sample, len(transcription_segments)),
+        )
 
         frase_exercises = []
         for segment in sampled_segments:
             frase_exercise_dict = self.create_exercise(segment.transcript_text)
-            frase_exercise_dict['start_time'] = segment.start_time
-            frase_exercise_dict['end_time'] = segment.end_time
-            frase_exercise_dict['difficulty'] = self.difficulty
+            frase_exercise_dict["start_time"] = segment.start_time
+            frase_exercise_dict["end_time"] = segment.end_time
+            frase_exercise_dict["difficulty"] = self.difficulty
             frase_exercises.append(frase_exercise_dict)
 
         return frase_exercises
-
-

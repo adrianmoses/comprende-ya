@@ -32,9 +32,7 @@ class ProcessingJobRepository:
         return job
 
     def get_by_flow_run_id(self, flow_run_id: str) -> Optional[ProcessingJob]:
-        statement = select(ProcessingJob).where(
-            ProcessingJob.flow_run_id == flow_run_id
-        )
+        statement = select(ProcessingJob).where(ProcessingJob.flow_run_id == flow_run_id)
         return self.session.exec(statement).first()
 
     def list(self, skip: int = 0, limit: int = 50) -> List[ProcessingJob]:

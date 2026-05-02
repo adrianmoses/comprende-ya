@@ -1,11 +1,13 @@
-from anthropic import Anthropic
-from config import settings
-from models.schemas import Question, TimestampedQuestion, DetailedTranscript
-import re
 import json
+import re
+
+from anthropic import Anthropic
+
+from config import settings
+from models.schemas import DetailedTranscript, Question, TimestampedQuestion
+
 
 class QuestionService:
-
     def __init__(self):
         self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
@@ -13,40 +15,26 @@ class QuestionService:
         """Extrae JSON de bloques markdown"""
         text = text.strip()
 
-        json_block_match = re.search(
-            r'```json\s*([\s\S]*?)\s*```',
-            text,
-            re.MULTILINE
-        )
+        json_block_match = re.search(r"```json\s*([\s\S]*?)\s*```", text, re.MULTILINE)
         if json_block_match:
             return json_block_match.group(1).strip()
 
         # Patrón 2: Buscar JSON dentro de ``` ... ``` (sin especificar lenguaje)
-        code_block_match = re.search(
-            r'```\s*([\s\S]*?)\s*```',
-            text,
-            re.MULTILINE
-        )
+        code_block_match = re.search(r"```\s*([\s\S]*?)\s*```", text, re.MULTILINE)
         if code_block_match:
             potential_json = code_block_match.group(1).strip()
             # Verificar que empiece con [ o {
-            if potential_json.startswith('[') or potential_json.startswith('{'):
+            if potential_json.startswith("[") or potential_json.startswith("{"):
                 return potential_json
 
         # Patrón 3: Buscar array JSON directamente (sin bloques de código)
         # Buscar desde el primer [ hasta el último ] balanceado
-        array_match = re.search(
-            r'(\[\s*\{[\s\S]*\}\s*\])',
-            text
-        )
+        array_match = re.search(r"(\[\s*\{[\s\S]*\}\s*\])", text)
         if array_match:
             return array_match.group(1).strip()
 
         # Patrón 4: Buscar objeto JSON directamente
-        object_match = re.search(
-            r'(\{\s*"[\s\S]*\})',
-            text
-        )
+        object_match = re.search(r'(\{\s*"[\s\S]*\})', text)
         if object_match:
             return object_match.group(1).strip()
 
@@ -69,15 +57,15 @@ class QuestionService:
 
         except json.JSONDecodeError as e:
             # Intentar limpiar caracteres problemáticos comunes
-            cleaned = json_text.replace('\n', ' ').replace('\r', '')
+            cleaned = json_text.replace("\n", " ").replace("\r", "")
 
             try:
                 data = json.loads(cleaned)
                 if not isinstance(data, list):
                     raise ValueError(f"Esperaba una lista, recibió: {type(data).__name__}")
                 return data
-            except:
-                # Si aún falla, mostrar más contexto
+            except Exception:
+                # Si aún falla, mostrar más contexto. Re-raise with outer `e`.
                 raise ValueError(
                     f"No se pudo parsear JSON.\n"
                     f"Error: {str(e)}\n"
@@ -85,10 +73,9 @@ class QuestionService:
                     f"Respuesta completa de Claude (primeros 1000 chars): {text[:1000]}"
                 )
 
-
-    def generate_timestamped_questions(self,
-                                       detailed_transcript: DetailedTranscript,
-                                       num_questions: int = 5) -> list[TimestampedQuestion]:
+    def generate_timestamped_questions(
+        self, detailed_transcript: DetailedTranscript, num_questions: int = 5
+    ) -> list[TimestampedQuestion]:
         """
         Genera preguntas con timestamps basadas en segmentos
         :param detailed_transcript:
@@ -110,10 +97,7 @@ class QuestionService:
             section_end = (i + 1) * section_duration
 
             # Find segments that fall within this section
-            section_segments = [
-                seg for seg in segments
-                if section_start <= seg.start < section_end
-            ]
+            section_segments = [seg for seg in segments if section_start <= seg.start < section_end]
 
             # Add all segments from this section (to give Claude context)
             sampled_segments.extend(section_segments)
@@ -123,10 +107,9 @@ class QuestionService:
             sampled_segments = segments
 
         # Create context with timestamps for Claude
-        segments_text = "\n".join([
-            f"[{seg.start:.1f}s - {seg.end:.1f}s]: {seg.text}"
-            for seg in sampled_segments
-        ])
+        segments_text = "\n".join(
+            [f"[{seg.start:.1f}s - {seg.end:.1f}s]: {seg.text}" for seg in sampled_segments]
+        )
 
         prompt = f"""Basándote en esta transcripción con timestamps, genera {num_questions} preguntas de comprensión.
 
@@ -134,7 +117,7 @@ class QuestionService:
 
         IMPORTANTE - DISTRIBUCIÓN: El video ha sido dividido en {num_questions} secciones temporales.
         Debes generar EXACTAMENTE UNA pregunta para CADA sección, distribuyéndolas uniformemente:
-        {chr(10).join([f"- Sección {i+1}: {i * section_duration:.1f}s - {(i+1) * section_duration:.1f}s" for i in range(num_questions)])}
+        {chr(10).join([f"- Sección {i + 1}: {i * section_duration:.1f}s - {(i + 1) * section_duration:.1f}s" for i in range(num_questions)])}
 
         Transcripción con timestamps (organizada por secciones):
         {segments_text}
@@ -207,20 +190,22 @@ class QuestionService:
         message = self.client.messages.create(
             model="claude-4-sonnet-20250514",
             max_tokens=2500,
-            messages=[{
-                "role": "user",
-                "content": prompt,
-            }]
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
         )
 
         # Extraer y parsear JSON
         response_text = message.content[0].text
         # Debug: imprimir respuesta
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("RESPUESTA DE CLAUDE:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(response_text[:500])
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Parsear con validación
         questions_data = self._validate_and_parse_json(response_text)
@@ -231,13 +216,12 @@ class QuestionService:
             try:
                 questions.append(TimestampedQuestion(**q))
             except Exception as e:
-                raise ValueError(f"Error en pregunta {i+1}: {e}. Datos: {q}")
+                raise ValueError(f"Error en pregunta {i + 1}: {e}. Datos: {q}")
 
         # Ordernar por timestamp
         questions.sort(key=lambda q: q.timestamp)
 
         return questions
-
 
     def generate_question(self, transcript: str, num_questions: int = 5) -> list[Question]:
         """
@@ -275,10 +259,12 @@ class QuestionService:
             message = self.client.messages.create(
                 model="claude-4-sonnet-20250514",
                 max_tokens=2000,
-                messages=[{
-                    "role": "user",
-                    "content": prompt,
-                }]
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
             )
 
             # Parsear respuesta JSON
@@ -300,11 +286,12 @@ class QuestionService:
                 try:
                     questions.append(Question(**q))
                 except Exception as e:
-                    raise ValueError(f"Error en pregunta {i+1}: {e}")
+                    raise ValueError(f"Error en pregunta {i + 1}: {e}")
 
             return questions
         except Exception as e:
             print(f"Error generando preguntas: {e}")
             raise
+
 
 question_service = QuestionService()

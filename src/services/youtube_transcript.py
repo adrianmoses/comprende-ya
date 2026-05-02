@@ -1,6 +1,7 @@
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
 from typing import Optional
+
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import NoTranscriptFound, TranscriptsDisabled, VideoUnavailable
 
 
 class YouTubeTranscriptService:
@@ -9,7 +10,7 @@ class YouTubeTranscriptService:
     Útil para clasificar videos antes de procesarlos.
     """
 
-    def get_transcript(self, video_id: str, language: str = 'es') -> Optional[str]:
+    def get_transcript(self, video_id: str, language: str = "es") -> Optional[str]:
         """
         Obtiene la transcripción de un video de YouTube.
 
@@ -25,14 +26,14 @@ class YouTubeTranscriptService:
             ytt_api = YouTubeTranscriptApi()
             transcript_list = ytt_api.fetch(
                 video_id,
-                languages=[language, 'es-ES', 'es-MX', 'es-419']  # Diferentes variantes de español
+                languages=[language, "es-ES", "es-MX", "es-419"],  # Diferentes variantes de español
             )
 
             # Concatenar todo el texto
-            full_text = ' '.join([snippet.text for snippet in transcript_list])
+            full_text = " ".join([snippet.text for snippet in transcript_list])
             return full_text
 
-        except (TranscriptsDisabled, NoTranscriptFound, VideoUnavailable) as e:
+        except (TranscriptsDisabled, NoTranscriptFound, VideoUnavailable):
             # No hay transcripción disponible
             return None
         except Exception as e:
