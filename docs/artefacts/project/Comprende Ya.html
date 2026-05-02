@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Comprende Ya</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="screens-home.jsx"></script>
+<script type="text/babel" src="screens-listen.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#c4663d",
+  "transcriptSize": 15,
+  "showLevelBadges": true,
+  "theme": "dark"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [route, setRoute] = useState({ view: 'listen', id: 'mercados' });
+  const [savedPhrases, setSavedPhrases] = useState(['fíjate', 'pues', '¿sabes?', 'de paso']);
+  const [autopsyTarget, setAutopsyTarget] = useState({
+    phrase: 'a eso de las nueve',
+    range: [11, 18],
+    segId: 's1',
+  });
+  const [toast, setToast] = useState(null);
+
+  const go = (r) => {
+    setRoute(r);
+    if (r.view !== 'listen') setAutopsyTarget(null);
+  };
+
+  const savePhrase = (phrase) => {
+    if (savedPhrases.includes(phrase)) {
+      setSavedPhrases(p => p.filter(x => x !== phrase));
+      setToast({ msg: `Quitada de tu biblioteca: «${phrase}»`, kind: 'remove' });
+    } else {
+      setSavedPhrases(p => [...p, phrase]);
+      setToast({ msg: `Guardada en tu biblioteca: «${phrase}»`, kind: 'save' });
+    }
+    setTimeout(() => setToast(null), 2400);
+  };
+
+  const openAutopsy = (phrase, range, segId) => {
+    setAutopsyTarget({ phrase, range, segId });
+  };
+
+  // Apply tweaks
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent', t.accent);
+    document.documentElement.style.setProperty('--accent-ink', t.accent);
+    document.documentElement.style.setProperty('--transcript-size', t.transcriptSize + 'px');
+    const root = document.documentElement;
+    const set = (k, v) => root.style.setProperty(k, v);
+    if (t.theme === 'dark') {
+      set('--accent-ink', 'oklch(0.85 0.10 38)');
+      set('--paper',   '#1c1914');
+      set('--paper-2', '#252118');
+      set('--paper-3', '#2f2a1f');
+      set('--ink',     'oklch(0.96 0.010 85)');
+      set('--ink-2',   'oklch(0.82 0.012 80)');
+      set('--ink-3',   'oklch(0.65 0.014 75)');
+      set('--ink-4',   'oklch(0.50 0.016 70)');
+      set('--hair',    'oklch(0.32 0.012 70)');
+      set('--hair-2',  'oklch(0.28 0.010 70)');
+      set('--accent-soft', 'oklch(0.40 0.07 38)');
+      set('--support-soft','oklch(0.32 0.05 230)');
+      set('--good-soft',   'oklch(0.32 0.06 145)');
+      set('--bad-soft',    'oklch(0.32 0.07 25)');
+    } else if (t.theme === 'sepia') {
+      set('--accent-ink', 'oklch(0.42 0.13 38)');
+      set('--paper',   'oklch(0.965 0.018 80)');
+      set('--paper-2', 'oklch(0.945 0.025 80)');
+      set('--paper-3', 'oklch(0.91 0.03 80)');
+      set('--ink',     'oklch(0.22 0.012 80)');
+      set('--ink-2',   'oklch(0.42 0.012 80)');
+      set('--ink-3',   'oklch(0.58 0.012 80)');
+      set('--ink-4',   'oklch(0.74 0.01 80)');
+      set('--hair',    'oklch(0.86 0.012 80)');
+      set('--hair-2',  'oklch(0.90 0.012 80)');
+      set('--accent-soft', 'oklch(0.92 0.04 38)');
+      set('--support-soft','oklch(0.94 0.03 230)');
+      set('--good-soft',   'oklch(0.93 0.04 145)');
+      set('--bad-soft',    'oklch(0.94 0.04 25)');
+    } else if (t.theme === 'cool') {
+      set('--accent-ink', 'oklch(0.42 0.13 38)');
+      set('--paper',   'oklch(0.985 0.005 240)');
+      set('--paper-2', 'oklch(0.97 0.008 240)');
+      set('--paper-3', 'oklch(0.94 0.012 240)');
+      set('--ink',     'oklch(0.22 0.012 240)');
+      set('--ink-2',   'oklch(0.42 0.012 240)');
+      set('--ink-3',   'oklch(0.58 0.012 240)');
+      set('--ink-4',   'oklch(0.74 0.01 240)');
+      set('--hair',    'oklch(0.88 0.008 240)');
+      set('--hair-2',  'oklch(0.92 0.008 240)');
+      set('--accent-soft', 'oklch(0.92 0.04 38)');
+      set('--support-soft','oklch(0.94 0.03 230)');
+      set('--good-soft',   'oklch(0.93 0.04 145)');
+      set('--bad-soft',    'oklch(0.94 0.04 25)');
+    } else {
+      set('--accent-ink', 'oklch(0.42 0.13 38)');
+      set('--paper',   'oklch(0.985 0.005 85)');
+      set('--paper-2', 'oklch(0.97 0.008 85)');
+      set('--paper-3', 'oklch(0.94 0.01 85)');
+      set('--ink',     'oklch(0.22 0.012 80)');
+      set('--ink-2',   'oklch(0.42 0.012 80)');
+      set('--ink-3',   'oklch(0.58 0.012 80)');
+      set('--ink-4',   'oklch(0.74 0.01 80)');
+      set('--hair',    'oklch(0.88 0.008 80)');
+      set('--hair-2',  'oklch(0.92 0.008 80)');
+      set('--accent-soft', 'oklch(0.92 0.04 38)');
+      set('--support-soft','oklch(0.94 0.03 230)');
+      set('--good-soft',   'oklch(0.93 0.04 145)');
+      set('--bad-soft',    'oklch(0.94 0.04 25)');
+    }
+  }, [t.accent, t.transcriptSize, t.theme]);
+
+  return (
+    <div className="app" data-screen-label={route.view === 'listen' ? '02 Listen' : route.view === 'home' ? '01 Home' : '03 Chunks'}>
+      <Rail route={route} go={go} savedCount={savedPhrases.length} />
+      <div className="main">
+        <TopBar route={route} go={go} />
+        {route.view === 'home' && <Home go={go} />}
+        {route.view === 'listen' && (
+          <Listen
+            episodeId={route.id}
+            go={go}
+            tweaks={t}
+            savePhrase={savePhrase}
+            savedPhrases={savedPhrases}
+            openAutopsy={openAutopsy}
+            autopsyTarget={autopsyTarget}
+            closeAutopsy={() => setAutopsyTarget(null)}
+          />
+        )}
+        {route.view === 'chunks' && <ChunksPage go={go} />}
+      </div>
+
+      {toast && (
+        <div className="toast">
+          <IconBookmarkFilled className="i" style={{color: 'var(--accent)'}} />
+          {toast.msg}
+        </div>
+      )}
+
+      <TweaksPanel>
+        <TweakSection label="Tema" />
+        <TweakRadio
+          label="Fondo"
+          value={t.theme}
+          options={['dark', 'paper', 'sepia', 'cool']}
+          onChange={v => setTweak('theme', v)}
+        />
+        <TweakColor
+          label="Color de acento"
+          value={t.accent}
+          onChange={v => setTweak('accent', v)}
+        />
+        <TweakSection label="Transcripción" />
+        <TweakSlider
+          label="Tamaño del texto"
+          value={t.transcriptSize}
+          min={14} max={22} unit="px"
+          onChange={v => setTweak('transcriptSize', v)}
+        />
+        <TweakToggle
+          label="Mostrar nivel (B2, etc.)"
+          value={t.showLevelBadges}
+          onChange={v => setTweak('showLevelBadges', v)}
+        />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+function Rail({ route, go, savedCount }) {
+  const items = [
+    { id: 'home', label: 'Inicio', icon: IconHome, view: 'home' },
+    { id: 'listen', label: 'Escuchando ahora', icon: IconPlay, view: 'listen', subtle: 'Mercados de barrio' },
+    { id: 'chunks', label: 'Mis frases', icon: IconChunks, view: 'chunks', count: savedCount },
+  ];
+  return (
+    <aside className="rail">
+      <div className="brand">
+        <div className="brand-mark">C</div>
+        <div className="brand-name">Comprende <em>Ya</em></div>
+      </div>
+
+      <div className="nav">
+        <div className="nav-section">Estudio</div>
+        {items.map(it => {
+          const Ic = it.icon;
+          const active = route.view === it.view;
+          return (
+            <button key={it.id} className={`nav-item ${active ? 'is-active' : ''}`} onClick={() => go({ view: it.view, id: it.view === 'listen' ? 'mercados' : undefined })}>
+              <span className="nav-icon"><Ic className="i" /></span>
+              <span style={{flex: 1}}>{it.label}</span>
+              {it.count !== undefined && (
+                <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{it.count}</span>
+              )}
+            </button>
+          );
+        })}
+
+        <div className="nav-section">Biblioteca</div>
+        <button className="nav-item">
+          <span className="nav-icon"><IconLibrary className="i" /></span>
+          <span>Episodios</span>
+        </button>
+        <button className="nav-item">
+          <span className="nav-icon"><IconStats className="i" /></span>
+          <span>Progreso</span>
+        </button>
+      </div>
+
+      <div className="rail-foot">
+        <div className="avatar">A</div>
+        <div>
+          <div style={{ color: 'var(--ink)', fontSize: 12.5 }}>Ana · B2</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Día 6 de la racha</div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function TopBar({ route, go }) {
+  const titles = {
+    home: { crumb: 'Inicio', title: '' },
+    listen: { crumb: ['Inicio', 'Escuchando'], title: '' },
+    chunks: { crumb: 'Mis frases', title: '' },
+  };
+  const t = titles[route.view];
+  return (
+    <div className="topbar">
+      <div className="crumbs">
+        {Array.isArray(t.crumb) ? (
+          <>
+            <span onClick={() => go({ view: 'home' })}>{t.crumb[0]}</span>
+            <span className="sep">›</span>
+            <b>{t.crumb[1]}</b>
+          </>
+        ) : (
+          <b>{t.crumb}</b>
+        )}
+      </div>
+      <div className="top-actions">
+        <button className="btn ghost sm" style={{ color: 'var(--ink-3)' }}>
+          <IconSearch className="i" /> Buscar episodios
+        </button>
+        <button className="btn ghost sm">
+          <IconSettings className="i" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
