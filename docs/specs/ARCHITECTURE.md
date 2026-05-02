@@ -3,7 +3,7 @@
 <!-- status: inferred -->
 | Field | Value |
 |---|---|
-| status | inferred |
+| status | approved |
 | created | 2026-05-02 |
 | inferred-from | `src/main.py`, `src/config.py`, `src/db.py`, `src/api/routes/videos.py`, `src/flows/video_processing.py`, `src/services/*`, `src/repositories/*`, `src/models/database.py`, `src/models/schemas.py`, `alembic/versions/*`, `Dockerfile`, `pyproject.toml`, `docs/artefacts/` |
 
@@ -13,7 +13,7 @@ ComprendeYa today is a single FastAPI process that exposes one router (`/api/vid
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                  Planned Frontend (Next.js / React?)                 │
+│                  Planned Frontend (Vite Nitro React)                 │
 │                       http://localhost:3000                          │
 │   Inicio  ·  Escuchando (Phrase Autopsy)  ·  Mis frases              │
 └──────────────────────────────────────────────────────────────────────┘
@@ -120,7 +120,8 @@ The frontend will be an SPA hitting the same `/api/videos` surface. Three screen
 | **Escuchando** (Listen) | `GET /api/videos/{id}`, `GET /api/videos/{id}/segments`, **NEW** Phrase Autopsy fetch | `POST /api/videos/{id}/progress` per MCQ, **NEW** save-phrase / unsave-phrase | Tappable token-level transcript needs token annotations not currently in `VideoSegment.transcript_text`. |
 | **Mis frases** (Chunks) | **NEW** `GET /api/chunks` | **NEW** `POST /api/chunks/{id}/recording` | Whole feature is unimplemented. |
 
-[INFERRED: uncertain — please verify] Whether the new frontend will be a sibling Next.js project living alongside `src/`, or served by FastAPI as a static bundle.
+
+frontend will be a vite SPA project with a nitro web server to support running standalone 
 
 ## External Dependencies
 

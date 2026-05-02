@@ -3,7 +3,7 @@
 <!-- status: inferred -->
 | Field | Value |
 |---|---|
-| status | inferred |
+| status | approved |
 | created | 2026-05-02 |
 
 ## Features
