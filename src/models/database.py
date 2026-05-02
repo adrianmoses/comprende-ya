@@ -85,3 +85,18 @@ class FraseExercise(SQLModel, table=True):
 
     # Relación con Video
     video: Optional[Video] = Relationship(back_populates="frase_exercises")
+
+
+class ProcessingJob(SQLModel, table=True):
+    """Estado persistido de un flow de procesamiento de video."""
+    __tablename__ = "processing_jobs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    flow_run_id: str = Field(index=True, unique=True, max_length=36)
+    youtube_url: str
+    youtube_video_id: str = Field(index=True, max_length=32)
+    status: str = Field(default="PENDING", max_length=16, index=True)
+    error: Optional[str] = None
+    video_id: Optional[int] = Field(default=None, foreign_key="videos.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
