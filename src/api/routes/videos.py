@@ -6,11 +6,11 @@ from typing import List
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Query
 from sqlmodel import Session, select
 
-from db import get_session
+from db import get_session, get_db_session
 from models.database import Video, VideoSegment, Question
 from models.schemas import VideoRequest, VideoResponse
 from flows.video_processing import process_video_flow
-from repositories import VideoRepository
+from repositories import VideoRepository, ProcessingJobRepository
 from repositories.progress_repository import ProgressRepository
 from repositories.classifier_repository import ClassifierRepository
 from services.questions import question_service
@@ -26,31 +26,26 @@ from repositories.segments_repository import SegmentsRepository
 router = APIRouter()
 
 
-flow_runs = {}
-
 async def run_flow_background(flow_run_id: str, video_url: str, force: bool = False):
-    """Ejecuta el flow en background"""
+    """Ejecuta el flow en background y persiste el estado en processing_jobs."""
+    # Mark RUNNING. We open and close the session before running the flow so
+    # we don't hold a connection from the pool across the multi-minute job.
     try:
-        flow_runs[flow_run_id] = {
-            "status": "RUNNING",
-            "url": video_url
-        }
-
-        # Ejecutar flow (en v3 se ejecuta directamente)
-        result = process_video_flow(video_url, force=force)
-
-        flow_runs[flow_run_id] = {
-            "status": "COMPLETED",
-            "url": video_url,
-            "result": result
-        }
-
+        with get_db_session() as db:
+            ProcessingJobRepository(db).mark_running(flow_run_id)
     except Exception as e:
-        flow_runs[flow_run_id] = {
-            "status": "FAILED",
-            "url": video_url,
-            "error": str(e)
-        }
+        print(f"⚠️  Could not mark RUNNING for {flow_run_id}: {e}")
+
+    try:
+        result = process_video_flow(video_url, force=force)
+        with get_db_session() as db:
+            ProcessingJobRepository(db).mark_completed(
+                flow_run_id,
+                video_id=result.get("id") if isinstance(result, dict) else None,
+            )
+    except Exception as e:
+        with get_db_session() as db:
+            ProcessingJobRepository(db).mark_failed(flow_run_id, error=str(e))
 
 @router.get("/search")
 async def search_videos(
@@ -151,11 +146,12 @@ async def process_video_async(
 
     flow_run_id = str(uuid.uuid4())
 
-    # Inicializer estado
-    flow_runs[flow_run_id] = {
-        "status": "PENDING",
-        "url": str(request.url)
-    }
+    # Persistir el estado inicial del job en processing_jobs.
+    ProcessingJobRepository(db).create_pending(
+        flow_run_id=flow_run_id,
+        youtube_url=str(request.url),
+        youtube_video_id=youtube_video_id,
+    )
 
     # Ejecutar flow en background
     background_tasks.add_task(run_flow_background, flow_run_id, str(request.url), force)
@@ -168,34 +164,44 @@ async def process_video_async(
 
 
 @router.get("/status/{flow_run_id}")
-async def get_flow_status(flow_run_id: str):
+async def get_flow_status(flow_run_id: str, db: Session = Depends(get_session)):
     """
-    Obtiene el estado del flow
-    :param flow_run_id:
-    :return:
+    Obtiene el estado del flow desde processing_jobs.
     """
-    if flow_run_id not in flow_runs:
-        raise HTTPException(status_code=404, detail="Flow encontrado")
+    job = ProcessingJobRepository(db).get_by_flow_run_id(flow_run_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Flow no encontrado")
 
-    flow_status = flow_runs[flow_run_id].copy()
-    flow_status["flow_run_id"] = flow_run_id
-    return flow_status
+    response = {
+        "flow_run_id": job.flow_run_id,
+        "status": job.status,
+        "url": job.youtube_url,
+        "youtube_video_id": job.youtube_video_id,
+        "video_id": job.video_id,
+    }
+    if job.status == "FAILED" and job.error:
+        response["error"] = job.error
+    return response
 
 
 @router.get("/flows")
-async def get_flows():
+async def get_flows(
+    skip: int = 0,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_session),
+):
     """
-    Lista todos los flows
-    :return:
+    Lista los flows persistidos, más recientes primero.
     """
+    jobs = ProcessingJobRepository(db).list(skip=skip, limit=limit)
     return {
         "flows": [
             {
-                "flow_run_id": fid,
-                "status": data.get("status"),
-                "url": data.get("url")
+                "flow_run_id": j.flow_run_id,
+                "status": j.status,
+                "url": j.youtube_url,
             }
-            for fid, data in flow_runs.items()
+            for j in jobs
         ]
     }
 
@@ -213,7 +219,7 @@ async def get_video(video_id: str, db: Session = Depends(get_session)):
     video = repo.get_by_youtube_id(video_id)
 
     if not video:
-        raise HTTPException(status_code=404, detail="Video encontrado")
+        raise HTTPException(status_code=404, detail="Video no encontrado")
 
     return {
         "id": video.id,

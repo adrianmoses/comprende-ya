@@ -21,7 +21,7 @@
 | 009 | MCQ answer-progress tracking (single-user)           | implemented   | —    |
 | 010 | Post-process dialect classification (full transcript) | implemented  | —    |
 | 011 | Synchronous `/process` endpoint (legacy)             | deprecated    | —    |
-| 012 | Persist flow status (replace in-memory `flow_runs` dict with a `processing_jobs` table) | in-progress | — |
+| 012 | Persist flow status (replace in-memory `flow_runs` dict with a `processing_jobs` table) | implemented | [012-flow-status-persistence/spec.md](./012-flow-status-persistence/spec.md) |
 | 013 | Frontend: project setup & shared shell (rail + topbar + theme tokens) | planned | — |
 | 014 | Frontend: Inicio (library + KPIs)                    | planned       | —    |
 | 015 | Frontend: Escuchando (video, scrubber, transcript, MCQ rail) | planned | —    |
@@ -49,3 +49,4 @@
 | Date       | Change                                                      |
 |------------|-------------------------------------------------------------|
 | 2026-05-02 | Initial roadmap inferred by audit skill. Backend features 001–010 marked `implemented`; legacy sync endpoint 011 marked `deprecated`; flow-status persistence (012) marked `in-progress` — the flow itself ships, only the polling surface needs a `processing_jobs` table. Frontend features 013–016, 020, 023 marked `planned` based on `docs/artefacts/` design bundle; backend follow-ups (017–019, 021, 022, 024, 025, 026) added as gaps surfaced in OVERVIEW audit notes. |
+| 2026-05-02 | 012 → `implemented`. `processing_jobs` table replaces the in-memory dict; `/status` response trimmed (drops `result`, adds `youtube_video_id` + `video_id`); `/flows` paginates. Shipped without automated tests — 025 (test suite bootstrap) is the next prerequisite before further backend work. |
