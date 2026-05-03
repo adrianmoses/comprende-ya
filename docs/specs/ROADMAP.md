@@ -22,7 +22,7 @@
 | 010 | Post-process dialect classification (full transcript) | implemented  | —    |
 | 011 | Synchronous `/process` endpoint (legacy)             | deprecated    | —    |
 | 012 | Persist flow status (replace in-memory `flow_runs` dict with a `processing_jobs` table) | implemented | [012-flow-status-persistence/spec.md](./012-flow-status-persistence/spec.md) |
-| 013 | Frontend: project setup & shared shell (rail + topbar + theme tokens) | planned | — |
+| 013 | Frontend: project setup & shared shell (rail + topbar + theme tokens) | implemented | [013-frontend-project-setup/spec.md](./013-frontend-project-setup/spec.md) |
 | 014 | Frontend: Inicio (library + KPIs)                    | planned       | —    |
 | 015 | Frontend: Escuchando (video, scrubber, transcript, MCQ rail) | planned | —    |
 | 016 | Frontend: Phrase Autopsy side panel                  | planned       | —    |
@@ -52,3 +52,5 @@
 | 2026-05-02 | 012 → `implemented`. `processing_jobs` table replaces the in-memory dict; `/status` response trimmed (drops `result`, adds `youtube_video_id` + `video_id`); `/flows` paginates. Shipped without automated tests — 025 (test suite bootstrap) is the next prerequisite before further backend work. |
 | 2026-05-02 | 025 → `in-progress`. Spec drafted: pytest + DB fixture (SQLite-first, Postgres-via-services-container as fallback) + monkeypatched service singletons + ruff (lint+format) + GitHub Actions. |
 | 2026-05-02 | 025 → `implemented`. SQLite path landed (one dialect guard in migration `c6440d9b9453`); 17 tests across 4 files; ruff-clean codebase after audit-flagged cleanups (duplicate `import os`, unused `create_db_and_tables`, bare except). Decision record at `025-test-infrastructure/decision.md`. |
+| 2026-05-03 | 013 → `in-progress`. Spec drafted: TanStack Start (recommended) vs plain Vite + TanStack Router (fallback) for the frontend toolchain; `webapp/` at repo root; rail + topbar + 4-theme tokens ported from the design bundle; dev port 3000 to match backend CORS; placeholder routes for Inicio / Escuchando / Mis frases; API smoke call to `GET /api/videos/`; no frontend tests yet (deferred). |
+| 2026-05-03 | 013 → `implemented`. TanStack Start landed (no fallback needed). Tailwind v4 stripped post-scaffold (CLI forces it, but plain CSS is a clean replacement). SSR retained as default — eliminates FOUC for the `data-theme="dark"` attribute, deviates from spec §Non-Goals "client-rendered SPA" but justified in `decision.md`. Lint/typecheck/build all green. Decision record at `013-frontend-project-setup/decision.md`. |

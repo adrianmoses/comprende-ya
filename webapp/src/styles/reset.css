@@ -1,0 +1,31 @@
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	font-family: var(--font-ui);
+	font-size: 14px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#app {
+	min-height: 100%;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+}
+
+::selection {
+	background: var(--accent-soft);
+	color: var(--accent-ink);
+}
