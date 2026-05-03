@@ -1,4 +1,4 @@
-import type { VideoListResponse } from "./api-types";
+import type { VideoListResponse, VideoProgressResponse } from "./api-types";
 
 const BASE_URL = (
 	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
@@ -17,4 +17,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function listVideos(): Promise<VideoListResponse> {
 	return api<VideoListResponse>("/api/videos/");
+}
+
+export function getVideoProgress(
+	youtubeId: string,
+): Promise<VideoProgressResponse> {
+	return api<VideoProgressResponse>(
+		`/api/videos/${encodeURIComponent(youtubeId)}/progress`,
+	);
 }

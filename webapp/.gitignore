@@ -6,6 +6,7 @@ dist-ssr
 .env
 .nitro
 .tanstack
+.vite
 .wrangler
 .output
 .vinxi
