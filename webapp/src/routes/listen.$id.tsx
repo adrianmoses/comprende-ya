@@ -1,16 +1,539 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
+import {
+	getVideo,
+	getVideoProgress,
+	getVideoSegments,
+	saveProgress,
+} from "../lib/api";
+import type {
+	ProgressRow,
+	TranscriptSegment,
+	VideoDetailQuestion,
+} from "../lib/api-types";
+import { formatDuration } from "../lib/formatting";
 
 export const Route = createFileRoute("/listen/$id")({ component: Escuchando });
 
+const PLAYER_CONTAINER_ID = "yt-player";
+const SPEED_CYCLE = [1, 0.85, 0.7, 1.25];
+const CHOICE_LABELS = ["A", "B", "C", "D"];
+const SPEAKER_LABEL = "Narrador/a";
+
+function nextSpeed(current: number): number {
+	const idx = SPEED_CYCLE.indexOf(current);
+	return SPEED_CYCLE[(idx + 1) % SPEED_CYCLE.length] ?? 1;
+}
+
+function isNotFoundError(error: unknown): boolean {
+	return error instanceof Error && error.message.startsWith("404");
+}
+
 function Escuchando() {
-	const { id } = Route.useParams();
+	const { id: youtubeId } = Route.useParams();
+	const queryClient = useQueryClient();
+
+	const videoQuery = useQuery({
+		queryKey: ["video", youtubeId],
+		queryFn: () => getVideo(youtubeId),
+		retry: (failureCount, error) => !isNotFoundError(error) && failureCount < 3,
+	});
+	const segmentsQuery = useQuery({
+		queryKey: ["video-segments", videoQuery.data?.id],
+		queryFn: () => {
+			if (!videoQuery.data) throw new Error("video not loaded");
+			return getVideoSegments(videoQuery.data.id);
+		},
+		enabled: !!videoQuery.data,
+	});
+	const progressQuery = useQuery({
+		queryKey: ["video-progress", youtubeId],
+		queryFn: () => getVideoProgress(youtubeId),
+	});
+
+	const mutation = useMutation({
+		mutationFn: ({
+			questionId,
+			userAnswer,
+		}: {
+			questionId: number;
+			userAnswer: number;
+		}) => saveProgress(youtubeId, questionId, userAnswer),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["video-progress", youtubeId],
+			});
+		},
+	});
+
+	const player = useYouTubePlayer({
+		containerId: PLAYER_CONTAINER_ID,
+		videoId: youtubeId,
+	});
+
+	const [currentTime, setCurrentTime] = useState(0);
+	const [pendingQuestionId, setPendingQuestionId] = useState<number | null>(
+		null,
+	);
+	const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
+	const [playbackRate, setPlaybackRate] = useState(1);
+
+	useEffect(() => {
+		if (!player.isPlaying) return;
+		const interval = setInterval(() => {
+			setCurrentTime(player.getCurrentTime());
+		}, 250);
+		return () => clearInterval(interval);
+	}, [player.isPlaying, player.getCurrentTime]);
+
+	const questions = videoQuery.data?.questions ?? [];
+	const progressRows = progressQuery.data?.progress ?? [];
+	const progressByQuestionId = useMemo(() => {
+		const m = new Map<number, ProgressRow>();
+		for (const row of progressRows) m.set(row.question_id, row);
+		return m;
+	}, [progressRows]);
+
+	useEffect(() => {
+		if (pendingQuestionId !== null) return;
+		if (!questions.length) return;
+		const due = questions.find(
+			(q) => currentTime >= q.timestamp && !progressByQuestionId.has(q.id),
+		);
+		if (due) {
+			setPendingQuestionId(due.id);
+			setPendingAnswer(null);
+			player.pause();
+			player.seekTo(due.timestamp);
+		}
+	}, [
+		currentTime,
+		questions,
+		progressByQuestionId,
+		pendingQuestionId,
+		player.pause,
+		player.seekTo,
+	]);
+
+	const onSeek = (fraction: number) => {
+		const duration = videoQuery.data?.duration ?? 0;
+		const target = Math.max(0, Math.min(1, fraction)) * duration;
+		setCurrentTime(target);
+		player.seekTo(target);
+	};
+
+	const onSkip = (delta: number) => {
+		const duration = videoQuery.data?.duration ?? 0;
+		const target = Math.max(0, Math.min(duration, currentTime + delta));
+		setCurrentTime(target);
+		player.seekTo(target);
+	};
+
+	const onCycleSpeed = () => {
+		const next = nextSpeed(playbackRate);
+		setPlaybackRate(next);
+		player.setPlaybackRate(next);
+	};
+
+	const onTogglePlay = () => {
+		if (player.isPlaying) player.pause();
+		else player.play();
+	};
+
+	const onAnswer = (questionId: number, choice: number) => {
+		setPendingAnswer(choice);
+		mutation.mutate({ questionId, userAnswer: choice });
+	};
+
+	const onContinue = () => {
+		setPendingQuestionId(null);
+		setPendingAnswer(null);
+		player.play();
+	};
+
+	if (videoQuery.isError && isNotFoundError(videoQuery.error)) {
+		return <NotFound />;
+	}
+	if (videoQuery.isError) {
+		return <ErrorState onRetry={() => videoQuery.refetch()} />;
+	}
+
+	const video = videoQuery.data;
+	const segments = segmentsQuery.data ?? [];
+	const duration = video?.duration ?? 0;
+	const dataReady = !!video && !segmentsQuery.isPending;
+	const currentSegmentNumber =
+		segments.find(
+			(s) => currentTime >= s.start_time && currentTime < s.end_time,
+		)?.segment_number ?? null;
+	const pendingQuestion = pendingQuestionId
+		? questions.find((q) => q.id === pendingQuestionId)
+		: null;
+
 	return (
-		<div className="placeholder">
-			<h2>Escuchando — {id}</h2>
-			<p>
-				Player, transcript, MCQ rail and Phrase Autopsy panel land with features
-				015 and 016.
-			</p>
+		<div className={`listen ${dataReady ? "" : "listen-skeleton"}`}>
+			<div>
+				<VideoFrame
+					title={video?.title ?? "Cargando…"}
+					isPlaying={player.isPlaying}
+					onTogglePlay={onTogglePlay}
+				/>
+				<Scrubber
+					currentTime={currentTime}
+					duration={duration}
+					questions={questions}
+					onSeek={onSeek}
+				/>
+				<Transport
+					playbackRate={playbackRate}
+					onSkip={onSkip}
+					onCycleSpeed={onCycleSpeed}
+				/>
+				{dataReady ? (
+					<Transcript
+						segments={segments}
+						currentSegmentNumber={currentSegmentNumber}
+					/>
+				) : (
+					<TranscriptPlaceholder />
+				)}
+			</div>
+
+			<aside className="aside">
+				{pendingQuestion ? (
+					<QuestionPanel
+						question={pendingQuestion}
+						pendingAnswer={pendingAnswer}
+						existingRow={progressByQuestionId.get(pendingQuestion.id) ?? null}
+						onAnswer={(choice) => onAnswer(pendingQuestion.id, choice)}
+						onContinue={onContinue}
+					/>
+				) : (
+					<AsideHint />
+				)}
+				{dataReady && (
+					<SessionPanel
+						questions={questions}
+						segments={segments}
+						progressByQuestionId={progressByQuestionId}
+					/>
+				)}
+			</aside>
+		</div>
+	);
+}
+
+function TranscriptPlaceholder() {
+	return (
+		<div className="transcript">
+			<div className="transcript-h">
+				<h3>Transcripción</h3>
+			</div>
+			<div className="segment" />
+			<div className="segment" />
+			<div className="segment" />
+		</div>
+	);
+}
+
+function VideoFrame({
+	title,
+	isPlaying,
+	onTogglePlay,
+}: {
+	title: string;
+	isPlaying: boolean;
+	onTogglePlay: () => void;
+}) {
+	return (
+		<div className="video-wrap">
+			<div className="video-canvas">
+				<div id={PLAYER_CONTAINER_ID} />
+			</div>
+			<button
+				type="button"
+				className={`play-btn ${isPlaying ? "is-playing" : ""}`}
+				onClick={onTogglePlay}
+				aria-label={isPlaying ? "Pausar" : "Reproducir"}
+			>
+				{isPlaying ? "❚❚" : "▶"}
+			</button>
+			<div className="video-overlay">
+				<div>
+					<div className="video-title">{title}</div>
+					<div className="video-channel">—</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function Scrubber({
+	currentTime,
+	duration,
+	questions,
+	onSeek,
+}: {
+	currentTime: number;
+	duration: number;
+	questions: Array<VideoDetailQuestion>;
+	onSeek: (fraction: number) => void;
+}) {
+	const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+		const rect = e.currentTarget.getBoundingClientRect();
+		onSeek((e.clientX - rect.left) / rect.width);
+	};
+	const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
+	return (
+		<div className="scrubber">
+			<div className="scrubber-time">{formatDuration(currentTime)}</div>
+			<div
+				className="scrub-bar"
+				onClick={handleClick}
+				onKeyDown={(e) => {
+					if (e.key === "Enter") onSeek(0.5);
+				}}
+				role="slider"
+				aria-valuemin={0}
+				aria-valuemax={duration}
+				aria-valuenow={currentTime}
+				tabIndex={0}
+			>
+				<div className="scrub-fill" style={{ width: `${pct}%` }} />
+				{questions.map((q) => (
+					<div
+						key={q.id}
+						className="scrub-mark"
+						style={{
+							left: duration > 0 ? `${(q.timestamp / duration) * 100}%` : "0%",
+						}}
+					/>
+				))}
+				<div className="scrub-thumb" style={{ left: `${pct}%` }} />
+			</div>
+			<div className="scrubber-time" style={{ textAlign: "right" }}>
+				{formatDuration(duration)}
+			</div>
+		</div>
+	);
+}
+
+function Transport({
+	playbackRate,
+	onSkip,
+	onCycleSpeed,
+}: {
+	playbackRate: number;
+	onSkip: (delta: number) => void;
+	onCycleSpeed: () => void;
+}) {
+	return (
+		<div className="transport">
+			<button type="button" className="skip-btn" onClick={() => onSkip(-5)}>
+				← 5s
+			</button>
+			<button type="button" className="skip-btn" onClick={() => onSkip(5)}>
+				5s →
+			</button>
+			<button type="button" className="speed" onClick={onCycleSpeed}>
+				{playbackRate}×
+			</button>
+			<div style={{ flex: 1 }} />
+			<span className="legend">
+				<span className="legend-mark" />
+				Pregunta de comprensión
+			</span>
+		</div>
+	);
+}
+
+function Transcript({
+	segments,
+	currentSegmentNumber,
+}: {
+	segments: Array<TranscriptSegment>;
+	currentSegmentNumber: number | null;
+}) {
+	return (
+		<div className="transcript">
+			<div className="transcript-h">
+				<h3>Transcripción</h3>
+			</div>
+			{segments.map((seg) => {
+				const isCurrent = seg.segment_number === currentSegmentNumber;
+				return (
+					<div
+						key={seg.segment_number}
+						className={`segment ${isCurrent ? "is-current" : ""}`}
+					>
+						<div className="seg-speaker">
+							<span>{SPEAKER_LABEL}</span>
+							<span className="ts">{formatDuration(seg.start_time)}</span>
+						</div>
+						<div className="seg-text">{seg.transcript}</div>
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+function QuestionPanel({
+	question,
+	pendingAnswer,
+	existingRow,
+	onAnswer,
+	onContinue,
+}: {
+	question: VideoDetailQuestion;
+	pendingAnswer: number | null;
+	existingRow: ProgressRow | null;
+	onAnswer: (choice: number) => void;
+	onContinue: () => void;
+}) {
+	const effectiveAnswer = pendingAnswer ?? existingRow?.user_answer ?? null;
+	const answered = effectiveAnswer !== null;
+	const isCorrect = answered && effectiveAnswer === question.correct_answer;
+	return (
+		<div className="panel">
+			<div className="panel-h">
+				<h4>Pregunta de comprensión</h4>
+				<span className="panel-tag">después del segmento</span>
+			</div>
+			<div className="panel-body">
+				<div className="q-meta">¿Lo captaste?</div>
+				<p className="q-prompt">{question.question}</p>
+				<div className="choices">
+					{question.answers.map((text, idx) => {
+						let cls = "choice";
+						if (answered) {
+							if (idx === question.correct_answer) cls += " is-correct";
+							else if (idx === effectiveAnswer) cls += " is-wrong";
+							else cls += " is-disabled";
+						}
+						return (
+							<button
+								key={text}
+								type="button"
+								className={cls}
+								onClick={() => !answered && onAnswer(idx)}
+								disabled={answered}
+							>
+								<span className="key">{CHOICE_LABELS[idx]}</span>
+								<span>{text}</span>
+							</button>
+						);
+					})}
+				</div>
+				{answered && (
+					<>
+						<div className="q-explain">
+							{isCorrect ? "✓ Exacto. " : "No del todo. "}
+							{question.explanation}
+						</div>
+						<div className="q-foot">
+							<button
+								type="button"
+								className="btn-continue"
+								onClick={onContinue}
+							>
+								Seguir →
+							</button>
+						</div>
+					</>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function AsideHint() {
+	return (
+		<div className="aside-empty">
+			<strong>Sigue escuchando.</strong>
+			<div style={{ marginTop: 6 }}>
+				Aparecerá una pregunta de comprensión en cada marca naranja del
+				temporizador.
+			</div>
+		</div>
+	);
+}
+
+function SessionPanel({
+	questions,
+	segments,
+	progressByQuestionId,
+}: {
+	questions: Array<VideoDetailQuestion>;
+	segments: Array<TranscriptSegment>;
+	progressByQuestionId: Map<number, ProgressRow>;
+}) {
+	const answeredCount = questions.filter((q) =>
+		progressByQuestionId.has(q.id),
+	).length;
+	return (
+		<div className="panel">
+			<div className="panel-h">
+				<h4>Sesión</h4>
+				<span className="panel-tag">
+					{answeredCount}/{questions.length} preguntas
+				</span>
+			</div>
+			<div
+				className="panel-body"
+				style={{ display: "flex", flexDirection: "column", gap: 10 }}
+			>
+				{questions.map((q, i) => {
+					const row = progressByQuestionId.get(q.id);
+					const seg = segments.find(
+						(s) => q.timestamp >= s.start_time && q.timestamp < s.end_time,
+					);
+					const appearance = seg
+						? formatDuration(seg.end_time)
+						: formatDuration(q.timestamp);
+					let circleCls = "session-circle";
+					let label = String(i + 1);
+					if (row) {
+						circleCls += row.is_correct ? " is-correct" : " is-wrong";
+						label = row.is_correct ? "✓" : "×";
+					}
+					const rowCls = `session-row ${row ? "is-answered" : ""}`;
+					return (
+						<div key={q.id} className={rowCls}>
+							<div className={circleCls}>{label}</div>
+							<div className="session-text">
+								{row ? "Respondida" : `Aparece a las ${appearance}`}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+	return (
+		<div className="page">
+			<div className="listen-error">
+				<div>No pudimos cargar este episodio.</div>
+				<button type="button" onClick={onRetry}>
+					Reintentar
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function NotFound() {
+	return (
+		<div className="page">
+			<div className="listen-not-found">
+				<div>Este episodio no existe en tu biblioteca.</div>
+				<Link to="/">Volver a Inicio</Link>
+			</div>
 		</div>
 	);
 }

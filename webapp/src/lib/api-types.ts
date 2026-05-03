@@ -37,3 +37,36 @@ export type VideoProgressResponse = {
 	summary: ProgressSummary;
 	progress: Array<ProgressRow>;
 };
+
+export type VideoDetailQuestion = {
+	id: number;
+	timestamp: number;
+	question: string;
+	answers: Array<string>;
+	correct_answer: number;
+	explanation: string | null;
+};
+
+export type VideoDetail = {
+	id: number;
+	video_id: string;
+	url: string;
+	title: string;
+	duration: number;
+	questions: Array<VideoDetailQuestion>;
+	created_at: string;
+};
+
+export type TranscriptSegment = {
+	segment_number: number;
+	transcript: string;
+	start_time: number;
+	end_time: number;
+};
+
+export type SaveProgressResponse = {
+	question_id: number;
+	user_answer: number;
+	is_correct: boolean;
+	answered_at: string;
+};

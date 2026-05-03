@@ -298,10 +298,10 @@ async def get_video_segments(video_id: int, session: Session = Depends(get_sessi
         .order_by(VideoSegment.segment_number)
     ).all()
 
-    segment_repo = SegmentsRepository()
     # Si no hay segmentos, intentar extraerlos
     if not segments and video.full_transcript_data:
-        segments = segment_repo.extract_and_save_segments(video, session)
+        segment_repo = SegmentsRepository(session)
+        segments = segment_repo.extract_and_save_segments(video)
 
     return [
         {

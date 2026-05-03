@@ -28,7 +28,7 @@ A single self-directed B2 Spanish learner using the app on desktop web for focus
 
 The implemented backend job: turn a YouTube URL into (1) a timestamped transcript, (2) ~5 comprehension MCQs distributed across the video, (3) a sample of fill-in-the-blank exercises, and (4) an optional dialect classification (España / México / Argentina / Caribe / Andino / Otro).
 
-The **planned frontend job** (per design): render those artefacts in a focused listening UI, plus offer **Phrase Autopsy** (natural translation → grammar breakdown → why-it-sounds-native) and a **Chunk Library** of saved phrases with rotating speaking prompts and microphone recording.
+The **planned frontend job** (per design): render those artefacts in a focused listening UI, plus offer **Phrase Autopsy** (grammar breakdown → why-it-sounds-native, all in Spanish) and a **Chunk Library** of saved phrases with rotating speaking prompts and microphone recording.
 
 ## Non-Goals
 
@@ -41,6 +41,7 @@ Inferred from what is explicitly absent in the code:
 - **No content moderation, no copyright handling.** Trusts the user-provided URL.
 - **No mobile / native app.** Design bundle viewport is fixed-width 1280px desktop.
 - **No audio evluation** No ASR / pronunciation scoring from audio recordings
+- **No English translations or glosses anywhere in the product.** The transcript is Spanish-only (no "+ Inglés" toggle), Phrase Autopsy is Spanish-only (grammar breakdown + why-it-sounds-native, no `natural`/`literal` English fields from the design bundle), Chunk Library entries are Spanish-only. The product targets B2 learners; English crutches push them back toward L1-mediated comprehension instead of the Spanish-internal reasoning the level demands. This is a permanent product position, not a deferral.
 
 ## Tech Stack
 
@@ -58,7 +59,7 @@ Inferred from what is explicitly absent in the code:
 
 **Frontend (planned, not yet started):**
 - Per design bundle: HTML/CSS/JS prototype using React 18 UMD + Babel-standalone for design-tool playback only — production target is a real React (or equivalent) build that the team chooses.
-- Fonts: Inter (UI), Instrument Serif (editorial accents), JetBrains Mono (numbers/literal gloss)
+- Fonts: Inter (UI), Instrument Serif (editorial accents), JetBrains Mono (numbers, grammar tags)
 - Color: warm-neutral tokens via `oklch()`, terracotta accent (`#c4663d`); themes: `dark` (default, `#1c1914`), `paper`, `sepia`, `cool`
 - No package manager, bundler, or framework decision is committed yet.
 
@@ -101,7 +102,7 @@ Backend, as implemented:
 
 The design bundle implies capabilities the backend does not yet support:
 
-- **Phrase Autopsy data model** — `data.js:164` shows `{ natural, literal, grammar: [{tag, text}], natural_notes: [...], register }` keyed by phrase. No DB table, no generator service, no endpoint. This is the design's "one interesting idea" and is the largest backend gap.
+- **Phrase Autopsy data model** — `data.js:164` shows `{ natural, literal, grammar: [{tag, text}], natural_notes: [...], register }` keyed by phrase. Per §Non-Goals, the `natural` and `literal` English fields are dropped; the shipping shape is `{ grammar: [{tag, text}], natural_notes: [...], register }` — Spanish-only. No DB table, no generator service, no endpoint. Still the largest backend gap.
 - **Token-level transcript with "interesting" markers.** Design uses `tokens: [{t: 'word'}, {t: 'word', w: true}, {p: ','}]`. Backend stores plain `transcript_text` per segment with no token boundaries or word-level annotations.
 - **Saved-phrase / chunk library.** `data.js:198` shows phrases with `gloss`, `source`, `saved` (timestamp), `mastery` (0-1), `prompts: [...]`. No DB table.
 - **User profile / streak / weekly stats.** Home screen shows "Ana · B2 · Día 6", "Esta semana 42min", "Comprensión 84 %". No users table, no session-time tracking, no aggregate computation.
