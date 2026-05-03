@@ -1,0 +1,83 @@
+:root {
+	--paper: oklch(0.985 0.005 85);
+	--paper-2: oklch(0.97 0.008 85);
+	--paper-3: oklch(0.94 0.01 85);
+	--ink: oklch(0.22 0.012 80);
+	--ink-2: oklch(0.42 0.012 80);
+	--ink-3: oklch(0.58 0.012 80);
+	--ink-4: oklch(0.74 0.01 80);
+	--hair: oklch(0.88 0.008 80);
+	--hair-2: oklch(0.92 0.008 80);
+	--accent: #c4663d;
+	--accent-soft: oklch(0.92 0.04 38);
+	--accent-ink: oklch(0.42 0.13 38);
+	--support: oklch(0.55 0.06 230);
+	--support-soft: oklch(0.94 0.03 230);
+	--good: oklch(0.62 0.11 145);
+	--good-soft: oklch(0.93 0.04 145);
+	--bad: oklch(0.58 0.14 25);
+	--bad-soft: oklch(0.94 0.04 25);
+
+	--r-sm: 6px;
+	--r: 10px;
+	--r-lg: 14px;
+	--r-xl: 20px;
+
+	--font-ui:
+		"Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-ed: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+	--font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+	--transcript-size: 15px;
+}
+
+[data-theme="dark"] {
+	--accent-ink: oklch(0.85 0.1 38);
+	--paper: #1c1914;
+	--paper-2: #252118;
+	--paper-3: #2f2a1f;
+	--ink: oklch(0.96 0.01 85);
+	--ink-2: oklch(0.82 0.012 80);
+	--ink-3: oklch(0.65 0.014 75);
+	--ink-4: oklch(0.5 0.016 70);
+	--hair: oklch(0.32 0.012 70);
+	--hair-2: oklch(0.28 0.01 70);
+	--accent-soft: oklch(0.4 0.07 38);
+	--support-soft: oklch(0.32 0.05 230);
+	--good-soft: oklch(0.32 0.06 145);
+	--bad-soft: oklch(0.32 0.07 25);
+}
+
+[data-theme="sepia"] {
+	--accent-ink: oklch(0.42 0.13 38);
+	--paper: oklch(0.965 0.018 80);
+	--paper-2: oklch(0.945 0.025 80);
+	--paper-3: oklch(0.91 0.03 80);
+	--ink: oklch(0.22 0.012 80);
+	--ink-2: oklch(0.42 0.012 80);
+	--ink-3: oklch(0.58 0.012 80);
+	--ink-4: oklch(0.74 0.01 80);
+	--hair: oklch(0.86 0.012 80);
+	--hair-2: oklch(0.9 0.012 80);
+	--accent-soft: oklch(0.92 0.04 38);
+	--support-soft: oklch(0.94 0.03 230);
+	--good-soft: oklch(0.93 0.04 145);
+	--bad-soft: oklch(0.94 0.04 25);
+}
+
+[data-theme="cool"] {
+	--accent-ink: oklch(0.42 0.13 38);
+	--paper: oklch(0.985 0.005 240);
+	--paper-2: oklch(0.97 0.008 240);
+	--paper-3: oklch(0.94 0.012 240);
+	--ink: oklch(0.22 0.012 240);
+	--ink-2: oklch(0.42 0.012 240);
+	--ink-3: oklch(0.58 0.012 240);
+	--ink-4: oklch(0.74 0.01 240);
+	--hair: oklch(0.88 0.008 240);
+	--hair-2: oklch(0.92 0.008 240);
+	--accent-soft: oklch(0.92 0.04 38);
+	--support-soft: oklch(0.94 0.03 230);
+	--good-soft: oklch(0.93 0.04 145);
+	--bad-soft: oklch(0.94 0.04 25);
+}

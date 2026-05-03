@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ComprendeYa API — a FastAPI backend for generating Spanish language comprehension exercises from YouTube videos. It downloads audio, transcribes it via OpenAI Whisper, generates comprehension questions with Claude, and creates fill-in-the-blank exercises using spaCy NLP.
 
+The desktop web frontend lives in `webapp/` (TanStack Start on Vite + React 19). See `webapp/README.md`.
+
 ## Commands
 
 ```bash

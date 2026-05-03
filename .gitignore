@@ -217,3 +217,14 @@ __marimo__/
 
 *.gguf
 .idea/
+
+# Frontend (webapp/)
+webapp/node_modules/
+webapp/dist/
+webapp/.output/
+webapp/.nitro/
+webapp/.tanstack/
+webapp/.vinxi/
+webapp/.env.local
+# Override Python-context `lib/` rule (line 17) for the frontend source tree.
+!webapp/src/lib/
