@@ -2,6 +2,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { getVideoProgress, listVideos } from "../lib/api";
 import type { VideoListItem, VideoProgressResponse } from "../lib/api-types";
+import { formatDuration } from "../lib/formatting";
 
 export const Route = createFileRoute("/")({ component: Inicio });
 
@@ -11,12 +12,6 @@ function hashColor(youtubeId: string): string {
 	const hue =
 		Array.from(youtubeId).reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
 	return `oklch(0.78 0.06 ${hue})`;
-}
-
-function formatDuration(seconds: number): string {
-	const m = Math.floor(seconds / 60);
-	const s = Math.floor(seconds % 60);
-	return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function deriveProgress(
