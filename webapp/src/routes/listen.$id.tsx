@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { AutopsyPanel } from "../components/AutopsyPanel";
+import { AutopsyTriggerCard } from "../components/AutopsyTriggerCard";
+import { getAutopsyEntries, getAutopsyEntry } from "../data/autopsy-fixtures";
 import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
 import {
 	getVideo,
@@ -13,6 +16,7 @@ import type {
 	TranscriptSegment,
 	VideoDetailQuestion,
 } from "../lib/api-types";
+import type { AutopsyTarget } from "../lib/autopsy-types";
 import { formatDuration } from "../lib/formatting";
 
 export const Route = createFileRoute("/listen/$id")({ component: Escuchando });
@@ -79,6 +83,16 @@ function Escuchando() {
 	);
 	const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
 	const [playbackRate, setPlaybackRate] = useState(1);
+	const [autopsyTarget, setAutopsyTarget] = useState<AutopsyTarget | null>(
+		null,
+	);
+	const [savedPhrases, setSavedPhrases] = useState<Set<string>>(
+		() => new Set(),
+	);
+	const autopsyEntries = useMemo(
+		() => getAutopsyEntries(youtubeId),
+		[youtubeId],
+	);
 
 	useEffect(() => {
 		if (!player.isPlaying) return;
@@ -105,6 +119,7 @@ function Escuchando() {
 		if (due) {
 			setPendingQuestionId(due.id);
 			setPendingAnswer(null);
+			setAutopsyTarget(null);
 			player.pause();
 			player.seekTo(due.timestamp);
 		}
@@ -171,6 +186,32 @@ function Escuchando() {
 	const pendingQuestion = pendingQuestionId
 		? questions.find((q) => q.id === pendingQuestionId)
 		: null;
+	const autopsyEntry = autopsyTarget
+		? getAutopsyEntry(youtubeId, autopsyTarget.phrase)
+		: null;
+
+	const onPickAutopsy = (phrase: string) => {
+		setAutopsyTarget({ phrase, segmentNumber: null });
+	};
+
+	const onCloseAutopsy = () => {
+		setAutopsyTarget(null);
+	};
+
+	const onToggleSavedPhrase = (phrase: string) => {
+		setSavedPhrases((prev) => {
+			const next = new Set(prev);
+			if (next.has(phrase)) next.delete(phrase);
+			else next.add(phrase);
+			return next;
+		});
+	};
+
+	const onReplayAutopsy = (startTime: number) => {
+		setCurrentTime(startTime);
+		player.seekTo(startTime);
+		player.play();
+	};
 
 	return (
 		<div className={`listen ${dataReady ? "" : "listen-skeleton"}`}>
@@ -209,6 +250,20 @@ function Escuchando() {
 						existingRow={progressByQuestionId.get(pendingQuestion.id) ?? null}
 						onAnswer={(choice) => onAnswer(pendingQuestion.id, choice)}
 						onContinue={onContinue}
+					/>
+				) : autopsyEntry ? (
+					<AutopsyPanel
+						entry={autopsyEntry}
+						isSaved={savedPhrases.has(autopsyEntry.phrase)}
+						onClose={onCloseAutopsy}
+						onSave={() => onToggleSavedPhrase(autopsyEntry.phrase)}
+						onReplay={() => onReplayAutopsy(autopsyEntry.start_time)}
+					/>
+				) : autopsyEntries.length > 0 ? (
+					<AutopsyTriggerCard
+						entries={autopsyEntries}
+						savedPhrases={savedPhrases}
+						onPick={(entry) => onPickAutopsy(entry.phrase)}
 					/>
 				) : (
 					<AsideHint />
