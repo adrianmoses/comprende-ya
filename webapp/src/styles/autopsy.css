@@ -1,0 +1,189 @@
+.autopsy-head {
+	padding-bottom: 14px;
+}
+
+.autopsy-phrase {
+	font-family: var(--font-ed);
+	font-size: 26px;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+	margin: 0 0 4px;
+}
+
+.autopsy-register {
+	display: inline-block;
+	margin-top: 10px;
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.04em;
+	color: var(--ink-3);
+	border: 1px solid var(--hair);
+	padding: 2px 7px;
+	border-radius: 4px;
+	text-transform: uppercase;
+}
+
+.layer {
+	border-top: 1px solid var(--hair);
+}
+
+.layer-h {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 14px 18px;
+	cursor: pointer;
+	user-select: none;
+	background: none;
+	border: 0;
+	width: 100%;
+	text-align: left;
+	color: inherit;
+	font: inherit;
+}
+
+.layer-num {
+	font-family: var(--font-ed);
+	font-size: 18px;
+	color: var(--accent);
+	width: 18px;
+}
+
+.layer-title {
+	font-size: 12.5px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--ink-2);
+	flex: 1;
+}
+
+.layer-chev {
+	color: var(--ink-3);
+	transition: transform 0.2s;
+	font-size: 12px;
+}
+
+.layer.is-open .layer-chev {
+	transform: rotate(90deg);
+}
+
+.layer-body {
+	padding: 0 18px 16px 46px;
+	font-size: 13.5px;
+	line-height: 1.55;
+	color: var(--ink-2);
+}
+
+.gram-row {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 12px;
+	padding: 8px 0;
+	border-top: 1px dashed var(--hair-2);
+}
+
+.gram-row:first-child {
+	border-top: 0;
+}
+
+.gram-tag {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	color: var(--support);
+	background: var(--support-soft);
+	padding: 2px 7px;
+	border-radius: 4px;
+	height: fit-content;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	white-space: nowrap;
+}
+
+.nat-row {
+	padding: 6px 0;
+	border-top: 1px dashed var(--hair-2);
+}
+
+.nat-row:first-child {
+	border-top: 0;
+}
+
+.autopsy-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 18px;
+	border-top: 1px solid var(--hair);
+	background: var(--paper-2);
+}
+
+.autopsy-foot .btn:last-child {
+	margin-left: auto;
+}
+
+.panel-close {
+	appearance: none;
+	background: none;
+	border: 0;
+	color: var(--ink-3);
+	cursor: pointer;
+	font-size: 18px;
+	line-height: 1;
+	padding: 4px 8px;
+	border-radius: 6px;
+}
+
+.panel-close:hover {
+	background: var(--paper-2);
+	color: var(--ink-2);
+}
+
+.autopsy-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 18px 18px;
+}
+
+.autopsy-list-row {
+	appearance: none;
+	background: var(--paper-2);
+	border: 1px solid var(--hair);
+	border-radius: var(--r);
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	cursor: pointer;
+	text-align: left;
+	transition:
+		border-color 0.15s,
+		background 0.15s;
+}
+
+.autopsy-list-row:hover {
+	background: var(--paper-3);
+	border-color: var(--ink-4);
+}
+
+.autopsy-list-row.is-saved {
+	border-color: var(--accent);
+}
+
+.autopsy-list-phrase {
+	font-family: var(--font-ed);
+	font-size: 17px;
+	color: var(--ink);
+	line-height: 1.2;
+}
+
+.autopsy-list-register {
+	font-family: var(--font-mono);
+	font-size: 10.5px;
+	letter-spacing: 0.04em;
+	color: var(--ink-3);
+	text-transform: uppercase;
+}
