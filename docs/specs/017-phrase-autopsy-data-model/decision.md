@@ -33,7 +33,6 @@ Added:
 - `alembic/versions/929145c0af7d_add_phrase_autopsy_table.py` — migration.
 - `tests/test_phrase_autopsy_service.py` — 11 service tests (mocked Anthropic client).
 - `tests/test_autopsy_routes.py` — 13 route tests (cache hit/miss, two-casing dedup, 422/404/502, empty/populated GET, unique-constraint smoke).
-- `scripts/spike_autopsy.py` — one-off spike runner. Not load-bearing; safe to delete.
 
 Touched:
 - `src/models/database.py` — added `PhraseAutopsy` table model and `phrase_autopsies` back-reference on `Video`. `__table_args__` carries the unique constraint.
@@ -93,7 +92,7 @@ Sample outputs (good + borderline):
 ```
 The `complemento circunstancial` tag is 26 chars — within the relaxed 40-char ceiling, fine. Notes were strong but a touch generic compared to the fixture.
 
-Full results live in `scripts/spike_autopsy_results.json` (kept locally; not committed long-term).
+The spike script + raw results were transient: ran once, captured the representative outputs above, then deleted. Re-running would burn tokens and produce different (still-valid) outputs since Claude varies run-to-run; the locked prompt in `src/services/phrase_autopsy.py:_PROMPT_TEMPLATE` is the source of truth going forward.
 
 ## Locked prompt
 
