@@ -1,0 +1,31 @@
+# Run `uv run pre-commit install` once after cloning to wire these into git.
+# Hooks use the project's local toolchain (uv, pnpm) so versions stay pinned
+# in pyproject.toml / webapp/package.json — no separate version bookkeeping.
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: biome-check
+        name: biome check (webapp)
+        # biome.json lives in webapp/, so we run from there. `--staged` limits
+        # the scan to git-staged files; `--write` auto-fixes formatting and
+        # safe lint issues. Anything biome can't fix surfaces as a hook
+        # failure with the file path.
+        entry: pnpm --dir webapp exec biome check --write --staged --no-errors-on-unmatched
+        language: system
+        files: ^webapp/.*\.(ts|tsx|js|jsx|css|json)$
+        pass_filenames: false

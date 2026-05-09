@@ -14,6 +14,9 @@ The desktop web frontend lives in `webapp/` (TanStack Start on Vite + React 19).
 # Install dependencies
 uv sync --frozen --no-cache
 
+# Wire up pre-commit hooks (once per clone) — runs ruff + biome on commit
+uv run pre-commit install
+
 # Run development server
 uv run fastapi run src/main.py --host 0.0.0.0 --port 8000
 
@@ -27,7 +30,7 @@ docker build -t comprende-ya .
 docker run -p 8000:8000 comprende-ya
 ```
 
-No test suite or linter is currently configured.
+Tests live under `tests/`, run with `uv run pytest`. Lint/format via `uv run ruff check` and `uv run ruff format` (webapp uses `pnpm lint` / `pnpm format`). The pre-commit config in `.pre-commit-config.yaml` runs the same tools on staged files.
 
 ## Environment
 
