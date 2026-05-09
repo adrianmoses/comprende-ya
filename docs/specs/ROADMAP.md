@@ -26,7 +26,7 @@
 | 014 | Frontend: Inicio (library + KPIs)                    | implemented   | [014-inicio/spec.md](./014-inicio/spec.md) |
 | 015 | Frontend: Escuchando (video, scrubber, transcript, MCQ rail) | implemented | [015-escuchando/spec.md](./015-escuchando/spec.md) |
 | 016 | Frontend: Phrase Autopsy side panel                  | implemented   | [016-phrase-autopsy/spec.md](./016-phrase-autopsy/spec.md) |
-| 017 | Backend: Phrase Autopsy data model + Claude generator | in-progress | [017-phrase-autopsy-data-model/spec.md](./017-phrase-autopsy-data-model/spec.md) |
+| 017 | Backend: Phrase Autopsy data model + Claude generator | implemented | [017-phrase-autopsy-data-model/spec.md](./017-phrase-autopsy-data-model/spec.md) |
 | 018 | Backend: token-level transcript with "interesting word" annotations | planned | — |
 | 019 | Backend: chunk library schema + endpoints            | planned       | —    |
 | 020 | Frontend: Mis frases (chunk library + speaking prompts) | planned    | —    |
