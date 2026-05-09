@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { ComponentType, SVGProps } from "react";
+import { listVideos } from "../lib/api";
 import {
 	IconChunks,
 	IconHome,
@@ -10,48 +12,69 @@ import {
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-type StudyItem = {
+type StaticStudyItem = {
 	id: string;
 	label: string;
 	to: string;
 	matchPrefix: string;
 	icon: IconComponent;
-	subtle?: string;
 	count?: number;
 };
 
-const STUDY_ITEMS: ReadonlyArray<StudyItem> = [
-	{
-		id: "home",
-		label: "Inicio",
-		to: "/",
-		matchPrefix: "/",
-		icon: IconHome,
-	},
-	{
-		id: "listen",
-		label: "Escuchando ahora",
-		to: "/listen/mercados",
-		matchPrefix: "/listen",
-		icon: IconPlay,
-		subtle: "Mercados de barrio",
-	},
-	{
-		id: "chunks",
-		label: "Mis frases",
-		to: "/chunks",
-		matchPrefix: "/chunks",
-		icon: IconChunks,
-		// Real count comes with feature 020 (Mis frases / chunk library).
-		count: 0,
-	},
-];
+const HOME_ITEM: StaticStudyItem = {
+	id: "home",
+	label: "Inicio",
+	to: "/",
+	matchPrefix: "/",
+	icon: IconHome,
+};
+
+const CHUNKS_ITEM: StaticStudyItem = {
+	id: "chunks",
+	label: "Mis frases",
+	to: "/chunks",
+	matchPrefix: "/chunks",
+	icon: IconChunks,
+	// Real count comes with feature 020 (Mis frases / chunk library).
+	count: 0,
+};
+
+function StaticNavLink({
+	item,
+	active,
+}: {
+	item: StaticStudyItem;
+	active: boolean;
+}) {
+	const Ic = item.icon;
+	return (
+		<Link to={item.to} className={`nav-item ${active ? "is-active" : ""}`}>
+			<span className="nav-icon">
+				<Ic />
+			</span>
+			<span className="nav-label">{item.label}</span>
+			{item.count !== undefined && (
+				<span className="nav-count">{item.count}</span>
+			)}
+		</Link>
+	);
+}
 
 export function Rail() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 
 	const isActive = (matchPrefix: string) =>
 		matchPrefix === "/" ? pathname === "/" : pathname.startsWith(matchPrefix);
+
+	// "Escuchando ahora" tracks the most recently processed video. Without a
+	// per-user "last watched" signal (lands with 020), newest-first is the
+	// closest stand-in. If no videos exist yet, the item is hidden rather than
+	// linking to a non-existent id.
+	const videosQuery = useQuery({
+		queryKey: ["videos-list"],
+		queryFn: listVideos,
+	});
+	const currentVideo = videosQuery.data?.videos[0];
 
 	return (
 		<aside className="rail">
@@ -64,28 +87,31 @@ export function Rail() {
 
 			<div className="nav">
 				<div className="nav-section">Estudio</div>
-				{STUDY_ITEMS.map((it) => {
-					const Ic = it.icon;
-					const active = isActive(it.matchPrefix);
-					return (
-						<Link
-							key={it.id}
-							to={it.to}
-							className={`nav-item ${active ? "is-active" : ""}`}
-						>
-							<span className="nav-icon">
-								<Ic />
-							</span>
-							<span className="nav-label">{it.label}</span>
-							{it.count !== undefined && (
-								<span className="nav-count">{it.count}</span>
-							)}
-							{it.subtle !== undefined && (
-								<span className="nav-subtle">{it.subtle}</span>
-							)}
-						</Link>
-					);
-				})}
+				<StaticNavLink
+					item={HOME_ITEM}
+					active={isActive(HOME_ITEM.matchPrefix)}
+				/>
+
+				{currentVideo && (
+					<Link
+						to="/listen/$id"
+						params={{ id: currentVideo.video_id }}
+						className={`nav-item ${isActive("/listen") ? "is-active" : ""}`}
+					>
+						<span className="nav-icon">
+							<IconPlay />
+						</span>
+						<span className="nav-label">Escuchando ahora</span>
+						<span className="nav-subtle" title={currentVideo.title}>
+							{currentVideo.title}
+						</span>
+					</Link>
+				)}
+
+				<StaticNavLink
+					item={CHUNKS_ITEM}
+					active={isActive(CHUNKS_ITEM.matchPrefix)}
+				/>
 
 				<div className="nav-section">Biblioteca</div>
 				<button type="button" className="nav-item">

@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class VideoRequest(BaseModel):
@@ -60,3 +61,24 @@ class DetailedTranscript(BaseModel):
     full_text: str
     segments: List[TranscriptSegment]
     duration: float
+
+
+class AutopsyGrammarRow(BaseModel):
+    tag: str
+    text: str
+
+
+class AutopsyExplainRequest(BaseModel):
+    phrase: str = Field(min_length=1, max_length=200)
+    start_time: float = Field(ge=0)
+
+
+class AutopsyEntryResponse(BaseModel):
+    id: int
+    video_id: str  # YouTube id, no la PK de la tabla videos
+    phrase: str
+    start_time: float
+    register: str
+    grammar: List[AutopsyGrammarRow]
+    natural_notes: List[str]
+    created_at: datetime
