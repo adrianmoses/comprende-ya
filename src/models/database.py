@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -23,6 +24,7 @@ class Video(SQLModel, table=True):
     questions: List["Question"] = Relationship(back_populates="video")
     segments: List["VideoSegment"] = Relationship(back_populates="video")
     frase_exercises: List["FraseExercise"] = Relationship(back_populates="video")
+    phrase_autopsies: List["PhraseAutopsy"] = Relationship(back_populates="video")
 
 
 class Question(SQLModel, table=True):
@@ -89,6 +91,27 @@ class FraseExercise(SQLModel, table=True):
 
     # Relación con Video
     video: Optional[Video] = Relationship(back_populates="frase_exercises")
+
+
+class PhraseAutopsy(SQLModel, table=True):
+    """Autopsia (en español) de una frase concreta de un vídeo, generada por Claude."""
+
+    __tablename__ = "phrase_autopsy"
+    __table_args__ = (
+        UniqueConstraint("video_id", "phrase_key", name="uq_phrase_autopsy_video_key"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    video_id: int = Field(foreign_key="videos.id", index=True)
+    phrase: str  # casing original para mostrar
+    phrase_key: str = Field(index=True)  # normalizado para búsqueda en caché
+    start_time: float
+    register: str
+    grammar: str  # JSON string de [{tag, text}]
+    natural_notes: str  # JSON string de [string]
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    video: Optional[Video] = Relationship(back_populates="phrase_autopsies")
 
 
 class ProcessingJob(SQLModel, table=True):

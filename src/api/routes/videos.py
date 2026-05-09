@@ -10,12 +10,19 @@ from sqlmodel import Session, select
 from db import get_db_session, get_session
 from flows.video_processing import process_video_flow
 from models.database import Question, Video, VideoSegment
-from models.schemas import VideoRequest, VideoResponse
+from models.schemas import (
+    AutopsyEntryResponse,
+    AutopsyExplainRequest,
+    VideoRequest,
+    VideoResponse,
+)
 from repositories import ProcessingJobRepository, VideoRepository
+from repositories.autopsy_repository import AutopsyRepository, normalize_phrase
 from repositories.classifier_repository import ClassifierRepository
 from repositories.progress_repository import ProgressRepository
 from repositories.segments_repository import SegmentsRepository
 from services.dialect_classifier import dialect_classifier
+from services.phrase_autopsy import AutopsyGenerationError, phrase_autopsy_service
 from services.questions import question_service
 from services.transcription import transcription_service
 from services.youtube import youtube_service
@@ -109,6 +116,7 @@ async def process_video_async(
 
     youtube_video_id = match.group(1)
 
+    print(force)
     # Verificar si ya existe
     if not force:
         repo = VideoRepository(db)
@@ -485,3 +493,46 @@ async def classify(video_id: str, db: Session = Depends(get_session)):
     classified = classifier_repo.classify_video(video)
 
     return {"video_id": video_id, "classified": classified}
+
+
+@router.post("/{video_id}/autopsy/explain", response_model=AutopsyEntryResponse)
+def explain_phrase(
+    video_id: str,
+    body: AutopsyExplainRequest,
+    db: Session = Depends(get_session),
+):
+    """Devuelve la autopsia de una frase: la sirve desde caché o la genera con
+    Claude y la persiste antes de devolverla."""
+    video = VideoRepository(db).get_by_youtube_id(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video no encontrado")
+
+    autopsy_repo = AutopsyRepository(db)
+    phrase_key = normalize_phrase(body.phrase)
+    cached = autopsy_repo.get_by_phrase(video.id, phrase_key)
+    if cached:
+        return autopsy_repo.to_response(cached, video.youtube_id)
+
+    context = SegmentsRepository(db).context_around(video.id, body.start_time)
+    if not context:
+        context = [video.transcript]
+
+    try:
+        payload = phrase_autopsy_service.explain(body.phrase, context)
+    except AutopsyGenerationError as exc:
+        raise HTTPException(status_code=502, detail=f"Generación fallida: {exc}") from exc
+
+    row = autopsy_repo.create(video.id, body.phrase, body.start_time, payload)
+    return autopsy_repo.to_response(row, video.youtube_id)
+
+
+@router.get("/{video_id}/autopsy", response_model=List[AutopsyEntryResponse])
+def list_autopsies(video_id: str, db: Session = Depends(get_session)):
+    """Lista todas las autopsias en caché para un vídeo. Vacío si no hay."""
+    video = VideoRepository(db).get_by_youtube_id(video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video no encontrado")
+
+    autopsy_repo = AutopsyRepository(db)
+    rows = autopsy_repo.list_for_video(video.id)
+    return [autopsy_repo.to_response(row, video.youtube_id) for row in rows]

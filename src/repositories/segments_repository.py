@@ -74,6 +74,24 @@ class SegmentsRepository:
         )
         return list(self.session.exec(statement).all())
 
+    def context_around(self, video_id: int, t: float, window_seconds: float = 6.0) -> List[str]:
+        """Devuelve los `transcript_text` de los segmentos que solapan con
+        `[t - window_seconds, t + window_seconds]`, ordenados temporalmente.
+        Lista vacía si no hay segmentos para este vídeo.
+        """
+        lo = t - window_seconds
+        hi = t + window_seconds
+        statement = (
+            select(VideoSegment)
+            .where(
+                VideoSegment.video_id == video_id,
+                VideoSegment.end_time >= lo,
+                VideoSegment.start_time <= hi,
+            )
+            .order_by(VideoSegment.segment_number)
+        )
+        return [seg.transcript_text for seg in self.session.exec(statement).all()]
+
     def delete_by_video_id(self, video_id: int) -> None:
         """
         Elimina todos los segmentos de un video.
