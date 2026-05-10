@@ -57,11 +57,24 @@ export type VideoDetail = {
 	created_at: string;
 };
 
+export type TokenWord = {
+	t: string;
+	span?: number;
+	start?: boolean;
+};
+
+export type TokenPunct = {
+	p: string;
+};
+
+export type SegmentToken = TokenWord | TokenPunct;
+
 export type TranscriptSegment = {
 	segment_number: number;
 	transcript: string;
 	start_time: number;
 	end_time: number;
+	tokens: Array<SegmentToken> | null;
 };
 
 export type SaveProgressResponse = {

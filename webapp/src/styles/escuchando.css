@@ -216,6 +216,37 @@
 	color: var(--ink);
 	letter-spacing: -0.005em;
 }
+.tx-span {
+	display: inline;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: inherit;
+	cursor: pointer;
+	border-bottom: 1px dotted var(--ink-3);
+	transition:
+		background 120ms ease,
+		border-color 120ms ease;
+}
+.tx-span:hover,
+.tx-span:focus-visible {
+	background: var(--accent-soft, rgba(255, 200, 100, 0.18));
+	border-bottom-color: var(--ink);
+	outline: none;
+}
+.autopsy-loading {
+	color: var(--ink-3);
+	font-size: 14px;
+	margin-top: 6px;
+}
+.autopsy-error {
+	color: var(--ink-3);
+	font-size: 14px;
+	margin: 6px 0 12px;
+}
 
 .aside {
 	position: sticky;
