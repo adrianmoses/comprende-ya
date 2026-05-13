@@ -83,7 +83,7 @@ def _marker(phrase="no me da igual", segment_number=0):
 
 def test_save_phrase_markers_populates_tokens_and_autopsy(session, video_with_segment):
     video, seg = video_with_segment
-    flow_module.save_phrase_markers_task.fn(video.id, [seg], [_marker()])
+    flow_module.save_phrase_markers_task.fn(video.id, [_marker()])
 
     refreshed = session.get(VideoSegment, seg.id)
     assert refreshed.tokens is not None
@@ -101,7 +101,7 @@ def test_save_phrase_markers_populates_tokens_and_autopsy(session, video_with_se
 
 def test_save_phrase_markers_no_markers_still_writes_plain_tokens(session, video_with_segment):
     video, seg = video_with_segment
-    flow_module.save_phrase_markers_task.fn(video.id, [seg], [])
+    flow_module.save_phrase_markers_task.fn(video.id, [])
 
     refreshed = session.get(VideoSegment, seg.id)
     assert refreshed.tokens is not None
@@ -129,7 +129,7 @@ def test_pre_existing_autopsy_row_wins(session, video_with_segment):
     session.add(pre)
     session.commit()
 
-    flow_module.save_phrase_markers_task.fn(video.id, [seg], [_marker()])
+    flow_module.save_phrase_markers_task.fn(video.id, [_marker()])
 
     rows = session.exec(select(PhraseAutopsy).where(PhraseAutopsy.video_id == video.id)).all()
     assert len(rows) == 1
@@ -144,7 +144,7 @@ def test_marker_service_failure_returns_empty_list(monkeypatch, video_with_segme
 
     monkeypatch.setattr("flows.video_processing.phrase_markers_service.explain_video", _raise)
 
-    out = flow_module.generate_phrase_markers_task.fn(video.id, [])
+    out = flow_module.generate_phrase_markers_task.fn(video.id)
     assert out == []
 
 
@@ -156,6 +156,6 @@ def test_marker_service_success_returns_parsed_list(monkeypatch, video_with_segm
         lambda segments: [_marker()],
     )
 
-    out = flow_module.generate_phrase_markers_task.fn(video.id, [])
+    out = flow_module.generate_phrase_markers_task.fn(video.id)
     assert len(out) == 1
     assert out[0]["phrase"] == "no me da igual"
