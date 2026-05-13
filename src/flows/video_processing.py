@@ -6,7 +6,7 @@ from typing import List
 from prefect import flow, task
 
 from db import get_db_session
-from models.database import Question, Video, VideoSegment
+from models.database import Question, Video
 from models.schemas import TimestampedQuestion
 from repositories import ExerciseRepository, SegmentsRepository, VideoRepository
 from repositories.autopsy_repository import AutopsyRepository, normalize_phrase
@@ -107,20 +107,18 @@ def save_to_database(video_data: dict, force: bool = False):
 
 
 @task(name="Guardar Timestamp Segments", retries=2)
-def save_video_segments(video_id: int) -> List[VideoSegment]:
+def save_video_segments(video_id: int) -> None:
     """Guardar video segmentos"""
 
-    segments = []
     with get_db_session() as db:
         video = db.get(Video, video_id)
         segments_repository = SegmentsRepository(db)
         segments = segments_repository.extract_and_save_segments(video)
         print(f"Creados {len(segments)} segmentos para el video")
-    return segments
 
 
 @task(name="Generar Phrase Markers")
-def generate_phrase_markers_task(video_id: int, segments: List[VideoSegment]) -> List[MarkerEntry]:
+def generate_phrase_markers_task(video_id: int) -> List[MarkerEntry]:
     """Pide a Claude marcadores de frases interesantes para todo el vídeo.
 
     Si la llamada o el parseo fallan por completo, devuelve [] para que el
@@ -128,7 +126,9 @@ def generate_phrase_markers_task(video_id: int, segments: List[VideoSegment]) ->
     caché de autopsia sin pre-poblar).
     """
     try:
-        markers = phrase_markers_service.explain_video(segments)
+        with get_db_session() as db:
+            segments = SegmentsRepository(db).get_by_video_id(video_id)
+            markers = phrase_markers_service.explain_video(segments)
         print(f"✅ {len(markers)} marcadores de frase generados")
         return markers
     except PhraseMarkersGenerationError as exc:
@@ -139,7 +139,6 @@ def generate_phrase_markers_task(video_id: int, segments: List[VideoSegment]) ->
 @task(name="Guardar Phrase Markers")
 def save_phrase_markers_task(
     video_id: int,
-    segments: List[VideoSegment],
     markers: List[MarkerEntry],
 ) -> None:
     """Tokeniza cada segmento, guarda `tokens` y pre-puebla la caché de autopsia.
@@ -148,26 +147,23 @@ def save_phrase_markers_task(
     manual que ya pobló la caché no se sobrescribe.
     """
 
-    if not segments:
-        return
-
     nlp = get_nlp()
     by_segment: dict[int, list[MarkerEntry]] = defaultdict(list)
     for m in markers:
         by_segment[m["segment_number"]].append(m)
 
     with get_db_session() as db:
+        segments = SegmentsRepository(db).get_by_video_id(video_id)
+        if not segments:
+            return
         autopsy_repo = AutopsyRepository(db)
         for seg in segments:
             seg_markers = by_segment.get(seg.segment_number, [])
             span_phrases = [(i, m["tokens_in_segment"]) for i, m in enumerate(seg_markers)]
             tokens = tokenize_segment(seg.transcript_text, span_phrases, nlp)
 
-            db_seg = db.get(VideoSegment, seg.id)
-            if db_seg is None:
-                continue
-            db_seg.tokens = json.dumps(tokens, ensure_ascii=False)
-            db.add(db_seg)
+            seg.tokens = json.dumps(tokens, ensure_ascii=False)
+            db.add(seg)
 
             for m in seg_markers:
                 phrase_key = normalize_phrase(m["phrase"])
@@ -243,11 +239,11 @@ def process_video_flow(video_url: str, force: bool = False):
     db_id = save_to_database(video_data, force)
 
     # Guardar Video Segmentos
-    segments = save_video_segments(db_id)
+    save_video_segments(db_id)
 
     # Generar marcadores de frase y pre-poblar caché de autopsia (018)
-    markers = generate_phrase_markers_task(db_id, segments)
-    save_phrase_markers_task(db_id, segments, markers)
+    markers = generate_phrase_markers_task(db_id)
+    save_phrase_markers_task(db_id, markers)
 
     # Generar ejercicios de fill-in-the-blank
     exercises = generate_exercises_task(db_id, "medio")
