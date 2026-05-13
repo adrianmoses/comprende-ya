@@ -317,6 +317,7 @@ async def get_video_segments(video_id: int, session: Session = Depends(get_sessi
             "transcript": seg.transcript_text,
             "start_time": seg.start_time,
             "end_time": seg.end_time,
+            "tokens": json.loads(seg.tokens) if seg.tokens else None,
         }
         for seg in segments
     ]

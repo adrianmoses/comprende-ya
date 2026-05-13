@@ -56,6 +56,7 @@ class VideoSegment(SQLModel, table=True):
     transcript_text: str
     start_time: float  # en segundos
     end_time: float  # en segundos
+    tokens: Optional[str] = None  # JSON string de la lista de tokens del segmento (018)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relación con Video

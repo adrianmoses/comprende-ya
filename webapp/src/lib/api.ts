@@ -5,6 +5,7 @@ import type {
 	VideoListResponse,
 	VideoProgressResponse,
 } from "./api-types";
+import type { AutopsyEntry } from "./autopsy-types";
 
 const BASE_URL = (
 	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
@@ -41,6 +42,20 @@ export function getVideoSegments(
 	dbId: number,
 ): Promise<Array<TranscriptSegment>> {
 	return api<Array<TranscriptSegment>>(`/api/videos/${dbId}/segments`);
+}
+
+export function explainPhrase(
+	youtubeId: string,
+	phrase: string,
+	startTime: number,
+): Promise<AutopsyEntry> {
+	return api<AutopsyEntry>(
+		`/api/videos/${encodeURIComponent(youtubeId)}/autopsy/explain`,
+		{
+			method: "POST",
+			body: JSON.stringify({ phrase, start_time: startTime }),
+		},
+	);
 }
 
 export function saveProgress(

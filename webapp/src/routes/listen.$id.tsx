@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { AutopsyPanel } from "../components/AutopsyPanel";
-import { AutopsyTriggerCard } from "../components/AutopsyTriggerCard";
-import { getAutopsyEntries, getAutopsyEntry } from "../data/autopsy-fixtures";
 import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
 import {
+	explainPhrase,
 	getVideo,
 	getVideoProgress,
 	getVideoSegments,
@@ -13,10 +12,11 @@ import {
 } from "../lib/api";
 import type {
 	ProgressRow,
+	SegmentToken,
 	TranscriptSegment,
 	VideoDetailQuestion,
 } from "../lib/api-types";
-import type { AutopsyTarget } from "../lib/autopsy-types";
+import type { AutopsyEntry } from "../lib/autopsy-types";
 import { formatDuration } from "../lib/formatting";
 
 export const Route = createFileRoute("/listen/$id")({ component: Escuchando });
@@ -25,6 +25,11 @@ const PLAYER_CONTAINER_ID = "yt-player";
 const SPEED_CYCLE = [1, 0.85, 0.7, 1.25];
 const CHOICE_LABELS = ["A", "B", "C", "D"];
 const SPEAKER_LABEL = "Narrador/a";
+
+type AutopsyState =
+	| { state: "loading"; phrase: string; startTime: number }
+	| { state: "error"; phrase: string; startTime: number }
+	| { state: "loaded"; entry: AutopsyEntry };
 
 function nextSpeed(current: number): number {
 	const idx = SPEED_CYCLE.indexOf(current);
@@ -83,15 +88,9 @@ function Escuchando() {
 	);
 	const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
 	const [playbackRate, setPlaybackRate] = useState(1);
-	const [autopsyTarget, setAutopsyTarget] = useState<AutopsyTarget | null>(
-		null,
-	);
+	const [autopsy, setAutopsy] = useState<AutopsyState | null>(null);
 	const [savedPhrases, setSavedPhrases] = useState<Set<string>>(
 		() => new Set(),
-	);
-	const autopsyEntries = useMemo(
-		() => getAutopsyEntries(youtubeId),
-		[youtubeId],
 	);
 
 	useEffect(() => {
@@ -119,7 +118,7 @@ function Escuchando() {
 		if (due) {
 			setPendingQuestionId(due.id);
 			setPendingAnswer(null);
-			setAutopsyTarget(null);
+			setAutopsy(null);
 			player.pause();
 			player.seekTo(due.timestamp);
 		}
@@ -168,6 +167,40 @@ function Escuchando() {
 		player.play();
 	};
 
+	const requestAutopsy = (phrase: string, startTime: number) => {
+		setAutopsy({ state: "loading", phrase, startTime });
+		explainPhrase(youtubeId, phrase, startTime)
+			.then((entry) => {
+				setAutopsy({ state: "loaded", entry });
+			})
+			.catch(() => {
+				setAutopsy({ state: "error", phrase, startTime });
+			});
+	};
+
+	const onPickSpan = (phrase: string, startTime: number) => {
+		requestAutopsy(phrase, startTime);
+	};
+
+	const onCloseAutopsy = () => {
+		setAutopsy(null);
+	};
+
+	const onToggleSavedPhrase = (phrase: string) => {
+		setSavedPhrases((prev) => {
+			const next = new Set(prev);
+			if (next.has(phrase)) next.delete(phrase);
+			else next.add(phrase);
+			return next;
+		});
+	};
+
+	const onReplayAutopsy = (startTime: number) => {
+		setCurrentTime(startTime);
+		player.seekTo(startTime);
+		player.play();
+	};
+
 	if (videoQuery.isError && isNotFoundError(videoQuery.error)) {
 		return <NotFound />;
 	}
@@ -186,32 +219,6 @@ function Escuchando() {
 	const pendingQuestion = pendingQuestionId
 		? questions.find((q) => q.id === pendingQuestionId)
 		: null;
-	const autopsyEntry = autopsyTarget
-		? getAutopsyEntry(youtubeId, autopsyTarget.phrase)
-		: null;
-
-	const onPickAutopsy = (phrase: string) => {
-		setAutopsyTarget({ phrase, segmentNumber: null });
-	};
-
-	const onCloseAutopsy = () => {
-		setAutopsyTarget(null);
-	};
-
-	const onToggleSavedPhrase = (phrase: string) => {
-		setSavedPhrases((prev) => {
-			const next = new Set(prev);
-			if (next.has(phrase)) next.delete(phrase);
-			else next.add(phrase);
-			return next;
-		});
-	};
-
-	const onReplayAutopsy = (startTime: number) => {
-		setCurrentTime(startTime);
-		player.seekTo(startTime);
-		player.play();
-	};
 
 	return (
 		<div className={`listen ${dataReady ? "" : "listen-skeleton"}`}>
@@ -236,6 +243,7 @@ function Escuchando() {
 					<Transcript
 						segments={segments}
 						currentSegmentNumber={currentSegmentNumber}
+						onPickSpan={onPickSpan}
 					/>
 				) : (
 					<TranscriptPlaceholder />
@@ -251,20 +259,30 @@ function Escuchando() {
 						onAnswer={(choice) => onAnswer(pendingQuestion.id, choice)}
 						onContinue={onContinue}
 					/>
-				) : autopsyEntry ? (
-					<AutopsyPanel
-						entry={autopsyEntry}
-						isSaved={savedPhrases.has(autopsyEntry.phrase)}
-						onClose={onCloseAutopsy}
-						onSave={() => onToggleSavedPhrase(autopsyEntry.phrase)}
-						onReplay={() => onReplayAutopsy(autopsyEntry.start_time)}
-					/>
-				) : autopsyEntries.length > 0 ? (
-					<AutopsyTriggerCard
-						entries={autopsyEntries}
-						savedPhrases={savedPhrases}
-						onPick={(entry) => onPickAutopsy(entry.phrase)}
-					/>
+				) : autopsy ? (
+					autopsy.state === "loading" ? (
+						<AutopsyPanel
+							state="loading"
+							phrase={autopsy.phrase}
+							onClose={onCloseAutopsy}
+						/>
+					) : autopsy.state === "error" ? (
+						<AutopsyPanel
+							state="error"
+							phrase={autopsy.phrase}
+							onClose={onCloseAutopsy}
+							onRetry={() => requestAutopsy(autopsy.phrase, autopsy.startTime)}
+						/>
+					) : (
+						<AutopsyPanel
+							state="loaded"
+							entry={autopsy.entry}
+							isSaved={savedPhrases.has(autopsy.entry.phrase)}
+							onClose={onCloseAutopsy}
+							onSave={() => onToggleSavedPhrase(autopsy.entry.phrase)}
+							onReplay={() => onReplayAutopsy(autopsy.entry.start_time)}
+						/>
+					)
 				) : (
 					<AsideHint />
 				)}
@@ -404,12 +422,65 @@ function Transport({
 	);
 }
 
+type SpanTokenWithPosition = { token: SegmentToken; position: number };
+
+type SpanGroup = {
+	span: number;
+	startPosition: number;
+	tokens: Array<SpanTokenWithPosition>;
+};
+
+type RenderItem =
+	| { kind: "token"; token: SegmentToken; position: number }
+	| { kind: "span"; group: SpanGroup };
+
+function buildRenderItems(tokens: Array<SegmentToken>): Array<RenderItem> {
+	const items: Array<RenderItem> = [];
+	let i = 0;
+	while (i < tokens.length) {
+		const tok = tokens[i];
+		if (!tok) break;
+		if ("t" in tok && typeof tok.span === "number") {
+			const spanIdx = tok.span;
+			const group: SpanGroup = {
+				span: spanIdx,
+				startPosition: i,
+				tokens: [],
+			};
+			while (i < tokens.length) {
+				const next = tokens[i];
+				if (!next) break;
+				if ("t" in next && next.span === spanIdx) {
+					group.tokens.push({ token: next, position: i });
+					i += 1;
+				} else {
+					break;
+				}
+			}
+			items.push({ kind: "span", group });
+		} else {
+			items.push({ kind: "token", token: tok, position: i });
+			i += 1;
+		}
+	}
+	return items;
+}
+
+function spanPhrase(group: SpanGroup): string {
+	return group.tokens
+		.map(({ token }) => ("t" in token ? token.t : ""))
+		.filter(Boolean)
+		.join(" ");
+}
+
 function Transcript({
 	segments,
 	currentSegmentNumber,
+	onPickSpan,
 }: {
 	segments: Array<TranscriptSegment>;
 	currentSegmentNumber: number | null;
+	onPickSpan: (phrase: string, startTime: number) => void;
 }) {
 	return (
 		<div className="transcript">
@@ -427,11 +498,60 @@ function Transcript({
 							<span>{SPEAKER_LABEL}</span>
 							<span className="ts">{formatDuration(seg.start_time)}</span>
 						</div>
-						<div className="seg-text">{seg.transcript}</div>
+						<div className="seg-text">
+							<SegmentText
+								segment={seg}
+								onPickSpan={(phrase) => onPickSpan(phrase, seg.start_time)}
+							/>
+						</div>
 					</div>
 				);
 			})}
 		</div>
+	);
+}
+
+function SegmentText({
+	segment,
+	onPickSpan,
+}: {
+	segment: TranscriptSegment;
+	onPickSpan: (phrase: string) => void;
+}) {
+	if (!segment.tokens || segment.tokens.length === 0) {
+		return <>{segment.transcript}</>;
+	}
+
+	const items = buildRenderItems(segment.tokens);
+	return (
+		<>
+			{items.map((item) => {
+				if (item.kind === "span") {
+					const phrase = spanPhrase(item.group);
+					return (
+						<Fragment key={`span-${item.group.startPosition}`}>
+							<button
+								type="button"
+								className="tx-span"
+								onClick={() => onPickSpan(phrase)}
+							>
+								{item.group.tokens.map(({ token, position }, j) => (
+									<Fragment key={`tok-${position}`}>
+										{j > 0 ? " " : null}
+										{"t" in token ? token.t : ""}
+									</Fragment>
+								))}
+							</button>{" "}
+						</Fragment>
+					);
+				}
+				const tok = item.token;
+				if ("p" in tok) {
+					return <Fragment key={`p-${item.position}`}>{tok.p}</Fragment>;
+				}
+				return <Fragment key={`t-${item.position}`}>{tok.t} </Fragment>;
+			})}
+		</>
 	);
 }
 
