@@ -25,6 +25,7 @@ class Video(SQLModel, table=True):
     segments: List["VideoSegment"] = Relationship(back_populates="video")
     frase_exercises: List["FraseExercise"] = Relationship(back_populates="video")
     phrase_autopsies: List["PhraseAutopsy"] = Relationship(back_populates="video")
+    chunks: List["Chunk"] = Relationship(back_populates="video")
 
 
 class Question(SQLModel, table=True):
@@ -113,6 +114,23 @@ class PhraseAutopsy(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     video: Optional[Video] = Relationship(back_populates="phrase_autopsies")
+
+
+class Chunk(SQLModel, table=True):
+    """Frase guardada en la biblioteca de Mis frases, con consignas de práctica."""
+
+    __tablename__ = "chunks"
+    __table_args__ = (UniqueConstraint("video_id", "phrase_key", name="uq_chunks_video_phrase"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    video_id: int = Field(foreign_key="videos.id", index=True)
+    phrase: str  # casing original para mostrar
+    phrase_key: str = Field(index=True)  # normalizado para búsqueda en caché
+    start_time: float
+    prompts: str  # JSON string de [string] — 2-4 consignas de uso en español
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    video: Optional[Video] = Relationship(back_populates="chunks")
 
 
 class ProcessingJob(SQLModel, table=True):

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import videos
+from api.routes import chunks, videos
 
 load_dotenv()
 
@@ -27,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
+app.include_router(chunks.router)
 
 
 @app.get("/")

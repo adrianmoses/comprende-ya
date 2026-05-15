@@ -20,44 +20,6 @@ VALID_PAYLOAD = {
 }
 
 
-@pytest.fixture
-def seeded_video(session):
-    """Insert a video + 2 segments and return it."""
-    from models.database import Video, VideoSegment
-
-    video = Video(
-        youtube_id="m1DFpkNdcv0",
-        youtube_url="https://youtu.be/m1DFpkNdcv0",
-        title="Vídeo de prueba",
-        duration=300,
-        transcript="Quedamos a eso de las nueve. Yo creo que para entonces ya habré salido.",
-    )
-    session.add(video)
-    session.commit()
-    session.refresh(video)
-
-    session.add_all(
-        [
-            VideoSegment(
-                video_id=video.id,
-                segment_number=1,
-                transcript_text="Quedamos a eso de las nueve.",
-                start_time=10.0,
-                end_time=14.0,
-            ),
-            VideoSegment(
-                video_id=video.id,
-                segment_number=2,
-                transcript_text="Yo creo que para entonces ya habré salido.",
-                start_time=14.0,
-                end_time=18.0,
-            ),
-        ]
-    )
-    session.commit()
-    return video
-
-
 def _stub_explain_returning(payload):
     calls = []
 
