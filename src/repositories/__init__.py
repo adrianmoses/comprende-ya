@@ -1,3 +1,4 @@
+from repositories.chunk_repository import ChunkRepository
 from repositories.exercise_repository import ExerciseRepository
 from repositories.processing_job_repository import ProcessingJobRepository
 from repositories.segments_repository import SegmentsRepository
@@ -8,4 +9,5 @@ __all__ = [
     "ExerciseRepository",
     "SegmentsRepository",
     "ProcessingJobRepository",
+    "ChunkRepository",
 ]

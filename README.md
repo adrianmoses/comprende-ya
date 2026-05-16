@@ -141,6 +141,16 @@ pnpm dev   # http://localhost:3000
 
 CORS on the backend is preconfigured for `http://localhost:3000`.
 
+### Run everything together
+
+To start the backend, frontend, and Prefect server in one shot (via [honcho](https://github.com/nickstenning/honcho) and the project `Procfile`):
+
+```bash
+make dev
+```
+
+Equivalent to `uvx honcho start`. Ctrl+C stops all three processes.
+
 ## Docker
 
 ```bash

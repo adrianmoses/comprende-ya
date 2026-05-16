@@ -82,3 +82,19 @@ class AutopsyEntryResponse(BaseModel):
     grammar: List[AutopsyGrammarRow]
     natural_notes: List[str]
     created_at: datetime
+
+
+class ChunkSaveRequest(BaseModel):
+    video_id: str  # YouTube id
+    phrase: str = Field(min_length=1, max_length=200)
+    start_time: float = Field(ge=0)
+
+
+class ChunkResponse(BaseModel):
+    id: int
+    video_id: str  # YouTube id
+    source_title: str  # título del vídeo, para Mis frases
+    phrase: str
+    start_time: float
+    prompts: List[str]
+    created_at: datetime
