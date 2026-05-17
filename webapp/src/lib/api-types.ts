@@ -83,3 +83,19 @@ export type SaveProgressResponse = {
 	is_correct: boolean;
 	answered_at: string;
 };
+
+export type Chunk = {
+	id: number;
+	video_id: string;
+	source_title: string;
+	phrase: string;
+	start_time: number;
+	prompts: Array<string>;
+	created_at: string;
+};
+
+export type ChunkSaveRequest = {
+	video_id: string;
+	phrase: string;
+	start_time: number;
+};

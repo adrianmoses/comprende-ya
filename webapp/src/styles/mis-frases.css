@@ -1,0 +1,228 @@
+/* ── Mis frases (chunk library) ──────────────────────── */
+
+.chunks-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 14px;
+}
+
+.chunk {
+	border: 1px solid var(--hair);
+	border-radius: var(--r-lg);
+	background: var(--paper);
+	padding: 18px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.chunk-h {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.chunk-phrase {
+	font-family: var(--font-ed);
+	font-size: 24px;
+	line-height: 1.15;
+	letter-spacing: -0.01em;
+	color: var(--ink);
+	margin: 0;
+}
+
+.chunk-source {
+	font-size: 11.5px;
+	color: var(--ink-3);
+	display: flex;
+	gap: 4px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.chunk-source-link {
+	color: var(--ink-2);
+	text-decoration: none;
+	border-bottom: 1px dotted var(--ink-4);
+}
+
+.chunk-source-link:hover {
+	color: var(--ink);
+	border-bottom-color: var(--ink);
+}
+
+.mastery {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	color: var(--ink-3);
+	font-family: var(--font-mono);
+}
+
+.mastery-dots {
+	display: flex;
+	gap: 3px;
+}
+
+.mastery-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--paper-3);
+}
+
+.chunk-prompt {
+	font-size: 13.5px;
+	line-height: 1.5;
+	color: var(--ink-2);
+	background: var(--paper-2);
+	padding: 12px 14px;
+	border-radius: var(--r);
+	border-left: 2px solid var(--accent);
+}
+
+.chunk-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.rec-btn {
+	appearance: none;
+	border: 1px solid var(--accent);
+	background: var(--paper);
+	color: var(--accent-ink);
+	padding: 6px 12px 6px 9px;
+	border-radius: 8px;
+	font-size: 12.5px;
+	cursor: default;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.rec-btn:hover {
+	background: var(--accent-soft);
+}
+
+.rec-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--accent);
+}
+
+.rec-btn.is-recording {
+	background: var(--accent);
+	color: white;
+}
+
+.rec-btn.is-recording .rec-dot {
+	background: white;
+	animation: rec-pulse 1s infinite ease-in-out;
+}
+
+@keyframes rec-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.5;
+		transform: scale(0.7);
+	}
+}
+
+.cycle-btn {
+	appearance: none;
+	border: 0;
+	background: transparent;
+	color: var(--ink-3);
+	font-size: 12px;
+	cursor: default;
+	padding: 4px 6px;
+}
+
+.cycle-btn:hover {
+	color: var(--ink);
+}
+
+.prompt-counter {
+	font-size: 11px;
+	color: var(--ink-3);
+	font-family: var(--font-mono);
+}
+
+/* Filter row */
+.filter-row {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 20px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.chip {
+	appearance: none;
+	border: 1px solid var(--hair);
+	background: var(--paper);
+	padding: 6px 12px;
+	border-radius: 999px;
+	font-size: 12.5px;
+	color: var(--ink-2);
+	cursor: default;
+}
+
+.chip:hover {
+	border-color: var(--ink-4);
+}
+
+.chip.is-on {
+	background: var(--ink);
+	color: var(--paper);
+	border-color: var(--ink);
+}
+
+.chip.is-disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.chip.is-disabled:hover {
+	border-color: var(--hair);
+}
+
+/* Empty state */
+.empty-state {
+	margin-top: 24px;
+	border: 1px dashed var(--hair);
+	border-radius: var(--r-lg);
+	padding: 36px 24px;
+	text-align: center;
+	color: var(--ink-2);
+	font-size: 14px;
+	line-height: 1.55;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.empty-state .muted {
+	color: var(--ink-3);
+	font-size: 13px;
+}
+
+.empty-state .btn {
+	margin-top: 12px;
+}
+
+.filter-empty {
+	margin-top: -8px;
+	margin-bottom: 18px;
+	font-size: 12.5px;
+	color: var(--ink-3);
+}

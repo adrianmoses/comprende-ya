@@ -255,6 +255,17 @@
 	color: var(--ink-3);
 }
 
+.btn:disabled,
+.btn.is-disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.btn:disabled:hover,
+.btn.is-disabled:hover {
+	background: var(--paper);
+}
+
 .placeholder {
 	padding: 36px 40px 80px;
 	max-width: 1180px;
