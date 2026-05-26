@@ -1,16 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AutopsyPanel } from "../components/AutopsyPanel";
 import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
 import {
+	deleteChunk,
 	explainPhrase,
 	getVideo,
 	getVideoProgress,
 	getVideoSegments,
+	listChunks,
+	saveChunk,
 	saveProgress,
 } from "../lib/api";
 import type {
+	Chunk,
 	ProgressRow,
 	SegmentToken,
 	TranscriptSegment,
@@ -18,8 +22,19 @@ import type {
 } from "../lib/api-types";
 import type { AutopsyEntry } from "../lib/autopsy-types";
 import { formatDuration } from "../lib/formatting";
+import { normalizePhrase } from "../lib/normalize-phrase";
 
-export const Route = createFileRoute("/listen/$id")({ component: Escuchando });
+type ListenSearch = { t?: number };
+
+export const Route = createFileRoute("/listen/$id")({
+	component: Escuchando,
+	validateSearch: (search: Record<string, unknown>): ListenSearch => {
+		const raw = search.t;
+		if (raw === undefined || raw === null || raw === "") return {};
+		const t = Number(raw);
+		return Number.isFinite(t) && t >= 0 ? { t } : {};
+	},
+});
 
 const PLAYER_CONTAINER_ID = "yt-player";
 const SPEED_CYCLE = [1, 0.85, 0.7, 1.25];
@@ -42,7 +57,9 @@ function isNotFoundError(error: unknown): boolean {
 
 function Escuchando() {
 	const { id: youtubeId } = Route.useParams();
+	const { t: deepLinkTime } = Route.useSearch();
 	const queryClient = useQueryClient();
+	const deepLinkConsumed = useRef(false);
 
 	const videoQuery = useQuery({
 		queryKey: ["video", youtubeId],
@@ -77,6 +94,23 @@ function Escuchando() {
 		},
 	});
 
+	const chunksQuery = useQuery({
+		queryKey: ["chunks"],
+		queryFn: listChunks,
+	});
+	const saveChunkMutation = useMutation({
+		mutationFn: saveChunk,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["chunks"] });
+		},
+	});
+	const deleteChunkMutation = useMutation({
+		mutationFn: deleteChunk,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["chunks"] });
+		},
+	});
+
 	const player = useYouTubePlayer({
 		containerId: PLAYER_CONTAINER_ID,
 		videoId: youtubeId,
@@ -89,9 +123,6 @@ function Escuchando() {
 	const [pendingAnswer, setPendingAnswer] = useState<number | null>(null);
 	const [playbackRate, setPlaybackRate] = useState(1);
 	const [autopsy, setAutopsy] = useState<AutopsyState | null>(null);
-	const [savedPhrases, setSavedPhrases] = useState<Set<string>>(
-		() => new Set(),
-	);
 
 	useEffect(() => {
 		if (!player.isPlaying) return;
@@ -100,6 +131,16 @@ function Escuchando() {
 		}, 250);
 		return () => clearInterval(interval);
 	}, [player.isPlaying, player.getCurrentTime]);
+
+	useEffect(() => {
+		if (deepLinkConsumed.current) return;
+		if (deepLinkTime === undefined) return;
+		if (!player.isReady) return;
+		player.seekTo(deepLinkTime);
+		player.play();
+		setCurrentTime(deepLinkTime);
+		deepLinkConsumed.current = true;
+	}, [deepLinkTime, player.isReady, player.seekTo, player.play]);
 
 	const questions = videoQuery.data?.questions ?? [];
 	const progressRows = progressQuery.data?.progress ?? [];
@@ -186,13 +227,32 @@ function Escuchando() {
 		setAutopsy(null);
 	};
 
-	const onToggleSavedPhrase = (phrase: string) => {
-		setSavedPhrases((prev) => {
-			const next = new Set(prev);
-			if (next.has(phrase)) next.delete(phrase);
-			else next.add(phrase);
-			return next;
-		});
+	const savedChunksByPhrase = useMemo(() => {
+		const map = new Map<string, Chunk>();
+		for (const c of chunksQuery.data ?? []) {
+			if (c.video_id === youtubeId) {
+				map.set(normalizePhrase(c.phrase), c);
+			}
+		}
+		return map;
+	}, [chunksQuery.data, youtubeId]);
+
+	const savedChunkFor = (phrase: string): Chunk | undefined =>
+		savedChunksByPhrase.get(normalizePhrase(phrase));
+
+	const onToggleSavedPhrase = (phrase: string, startTime: number) => {
+		deleteChunkMutation.reset();
+		saveChunkMutation.reset();
+		const existing = savedChunkFor(phrase);
+		if (existing) {
+			deleteChunkMutation.mutate(existing.id);
+		} else {
+			saveChunkMutation.mutate({
+				video_id: youtubeId,
+				phrase,
+				start_time: startTime,
+			});
+		}
 	};
 
 	const onReplayAutopsy = (startTime: number) => {
@@ -219,6 +279,14 @@ function Escuchando() {
 	const pendingQuestion = pendingQuestionId
 		? questions.find((q) => q.id === pendingQuestionId)
 		: null;
+
+	const saveChunkPending =
+		saveChunkMutation.isPending || deleteChunkMutation.isPending;
+	const saveChunkError = saveChunkMutation.isError
+		? "No se pudo guardar — reintenta."
+		: deleteChunkMutation.isError
+			? "No se pudo eliminar — reintenta."
+			: null;
 
 	return (
 		<div className={`listen ${dataReady ? "" : "listen-skeleton"}`}>
@@ -277,9 +345,16 @@ function Escuchando() {
 						<AutopsyPanel
 							state="loaded"
 							entry={autopsy.entry}
-							isSaved={savedPhrases.has(autopsy.entry.phrase)}
+							isSaved={!!savedChunkFor(autopsy.entry.phrase)}
+							pending={saveChunkPending}
+							error={saveChunkError}
 							onClose={onCloseAutopsy}
-							onSave={() => onToggleSavedPhrase(autopsy.entry.phrase)}
+							onSave={() =>
+								onToggleSavedPhrase(
+									autopsy.entry.phrase,
+									autopsy.entry.start_time,
+								)
+							}
 							onReplay={() => onReplayAutopsy(autopsy.entry.start_time)}
 						/>
 					)

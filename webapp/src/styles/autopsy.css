@@ -123,6 +123,14 @@
 	margin-left: auto;
 }
 
+.autopsy-error-inline {
+	padding: 8px 18px 12px;
+	background: var(--paper-2);
+	color: var(--accent);
+	font-size: 12.5px;
+	border-top: 1px solid var(--hair);
+}
+
 .panel-close {
 	appearance: none;
 	background: none;

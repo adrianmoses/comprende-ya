@@ -13,6 +13,8 @@ type AutopsyPanelProps =
 			state: "loaded";
 			entry: AutopsyEntry;
 			isSaved: boolean;
+			pending?: boolean;
+			error?: string | null;
 			onClose: () => void;
 			onSave: () => void;
 			onReplay: () => void;
@@ -75,6 +77,8 @@ export function AutopsyPanel(props: AutopsyPanelProps) {
 	}
 
 	const { entry, isSaved, onClose, onSave, onReplay } = props;
+	const pending = props.pending ?? false;
+	const error = props.error ?? null;
 
 	return (
 		<div className="panel">
@@ -126,6 +130,7 @@ export function AutopsyPanel(props: AutopsyPanelProps) {
 					type="button"
 					className={isSaved ? "btn accent" : "btn"}
 					onClick={onSave}
+					disabled={pending}
 				>
 					{isSaved ? "Guardada en biblioteca" : "Guardar en biblioteca"}
 				</button>
@@ -133,6 +138,7 @@ export function AutopsyPanel(props: AutopsyPanelProps) {
 					Re-escuchar
 				</button>
 			</div>
+			{error && <div className="autopsy-error-inline">{error}</div>}
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { ComponentType, SVGProps } from "react";
-import { listVideos } from "../lib/api";
+import { listChunks, listVideos } from "../lib/api";
 import {
 	IconChunks,
 	IconHome,
@@ -35,8 +35,6 @@ const CHUNKS_ITEM: StaticStudyItem = {
 	to: "/chunks",
 	matchPrefix: "/chunks",
 	icon: IconChunks,
-	// Real count comes with feature 020 (Mis frases / chunk library).
-	count: 0,
 };
 
 function StaticNavLink({
@@ -76,6 +74,15 @@ export function Rail() {
 	});
 	const currentVideo = videosQuery.data?.videos[0];
 
+	const chunksQuery = useQuery({
+		queryKey: ["chunks"],
+		queryFn: listChunks,
+	});
+	const chunksItem: StaticStudyItem = {
+		...CHUNKS_ITEM,
+		count: chunksQuery.data?.length ?? 0,
+	};
+
 	return (
 		<aside className="rail">
 			<div className="brand">
@@ -109,8 +116,8 @@ export function Rail() {
 				)}
 
 				<StaticNavLink
-					item={CHUNKS_ITEM}
-					active={isActive(CHUNKS_ITEM.matchPrefix)}
+					item={chunksItem}
+					active={isActive(chunksItem.matchPrefix)}
 				/>
 
 				<div className="nav-section">Biblioteca</div>

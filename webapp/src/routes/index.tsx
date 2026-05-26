@@ -1,6 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getVideoProgress, listVideos } from "../lib/api";
+import { getVideoProgress, listChunks, listVideos } from "../lib/api";
 import type { VideoListItem, VideoProgressResponse } from "../lib/api-types";
 import { formatDuration } from "../lib/formatting";
 
@@ -31,6 +31,10 @@ function Inicio() {
 	const videosQuery = useQuery({
 		queryKey: ["videos"],
 		queryFn: listVideos,
+	});
+	const chunksQuery = useQuery({
+		queryKey: ["chunks"],
+		queryFn: listChunks,
 	});
 	const videos = videosQuery.data?.videos ?? [];
 
@@ -72,7 +76,10 @@ function Inicio() {
 	return (
 		<div className="page">
 			<Greeting hasContinue={hasContinue} />
-			<KpiGrid />
+			<KpiGrid
+				chunksCount={chunksQuery.data?.length}
+				chunksLoading={chunksQuery.isLoading}
+			/>
 
 			{videosQuery.isPending ? (
 				<>
@@ -137,7 +144,13 @@ function Greeting({ hasContinue }: { hasContinue: boolean }) {
 	);
 }
 
-function KpiGrid() {
+function KpiGrid({
+	chunksCount,
+	chunksLoading,
+}: {
+	chunksCount: number | undefined;
+	chunksLoading: boolean;
+}) {
 	return (
 		<div className="kpis">
 			<div className="kpi">
@@ -146,7 +159,9 @@ function KpiGrid() {
 			</div>
 			<div className="kpi">
 				<div className="kpi-label">Frases guardadas</div>
-				<div className="kpi-val">0</div>
+				<div className={chunksLoading ? "kpi-val kpi-pending" : "kpi-val"}>
+					{chunksLoading ? "—" : (chunksCount ?? 0)}
+				</div>
 			</div>
 			<div className="kpi">
 				<div className="kpi-label">Racha</div>

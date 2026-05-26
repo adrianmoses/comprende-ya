@@ -1,4 +1,6 @@
 import type {
+	Chunk,
+	ChunkSaveRequest,
 	SaveProgressResponse,
 	TranscriptSegment,
 	VideoDetail,
@@ -18,6 +20,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 	});
 	if (!response.ok) {
 		throw new Error(`${response.status} ${response.statusText}`);
+	}
+	if (response.status === 204) {
+		return undefined as T;
 	}
 	return (await response.json()) as T;
 }
@@ -56,6 +61,21 @@ export function explainPhrase(
 			body: JSON.stringify({ phrase, start_time: startTime }),
 		},
 	);
+}
+
+export function listChunks(): Promise<Array<Chunk>> {
+	return api<Array<Chunk>>("/api/chunks");
+}
+
+export function saveChunk(body: ChunkSaveRequest): Promise<Chunk> {
+	return api<Chunk>("/api/chunks", {
+		method: "POST",
+		body: JSON.stringify(body),
+	});
+}
+
+export function deleteChunk(id: number): Promise<void> {
+	return api<void>(`/api/chunks/${id}`, { method: "DELETE" });
 }
 
 export function saveProgress(
