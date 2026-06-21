@@ -189,3 +189,70 @@ def test_exists_short_circuit_creates_no_row(client, session):
         select(ProcessingJob).where(ProcessingJob.youtube_video_id == "EXISTS123456")
     ).all()
     assert rows == []
+
+
+# --- POST /api/videos/exists — La Libreta permalink seed validation (027) ---
+
+
+def test_videos_exists_partitions_present_and_missing(client, seeded_video):
+    response = client.post(
+        "/api/videos/exists",
+        json={"ids": ["m1DFpkNdcv0", "zzz99999999"]},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "present": ["m1DFpkNdcv0"],
+        "missing": ["zzz99999999"],
+    }
+
+
+def test_videos_exists_preserves_requested_order(client, seeded_video):
+    # Interleave missing/present/missing; response must echo the request order.
+    response = client.post(
+        "/api/videos/exists",
+        json={"ids": ["aaa00000000", "m1DFpkNdcv0", "bbb00000000"]},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["present"] == ["m1DFpkNdcv0"]
+    assert body["missing"] == ["aaa00000000", "bbb00000000"]
+
+
+def test_videos_exists_empty_ids(client):
+    response = client.post("/api/videos/exists", json={"ids": []})
+    assert response.status_code == 200
+    assert response.json() == {"present": [], "missing": []}
+
+
+def test_videos_exists_no_truncation_past_list_cap(client, session):
+    # Seed more than the GET /api/videos/ default limit (20) and confirm every
+    # requested id comes back present — the batch check is bounded by the request,
+    # not by the list endpoint's pagination.
+    from models.database import Video
+
+    ids = [f"trunc{n:07d}" for n in range(25)]
+    for yt in ids:
+        session.add(
+            Video(
+                youtube_id=yt,
+                youtube_url=f"https://youtu.be/{yt}",
+                title="t",
+                duration=60,
+                transcript="...",
+            )
+        )
+    session.commit()
+
+    response = client.post("/api/videos/exists", json={"ids": ids})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["present"] == ids
+    assert body["missing"] == []
+
+
+def test_video_permalink_miss_returns_404(client):
+    # Locks the permalink contract: an unknown youtube_id 404s (does not redirect
+    # or return an empty 200), so La Libreta's seed fails loudly when an id rots.
+    response = client.get("/api/videos/zzz-bogus")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Video no encontrado"

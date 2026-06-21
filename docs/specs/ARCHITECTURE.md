@@ -136,6 +136,30 @@ frontend will be a vite SPA project with a nitro web server to support running s
 | **PostgreSQL** | `db.py` via SQLModel | `pool_pre_ping=True` covers connection drops; no read replicas, no migrations on startup |
 | **Prefect 3.x** | `flows/video_processing.py` | Runs in-process; `flow_runs` dict for status — restart loses all in-flight state |
 
+## External Contracts
+
+### La Libreta permalinks
+
+`videos.youtube_id` is the **stable public identifier** for every resource. La
+Libreta (the operator's Spanish-study planner, a separate repo) hardcodes these
+ids in its content seed and builds deep-links of the form
+`${COMPRENDEYA_BASE_URL}/listen/{youtube_id}`. Therefore:
+
+- **Never reuse a `youtube_id`** for different content. (Inherently safe — YouTube
+  ids are externally owned and globally unique; re-importing the same video yields
+  the same id.)
+- **Never rewrite or alias** existing ids in a migration.
+- `GET /listen/{id}` (frontend) and `GET /api/videos/{id}` (API) must keep
+  resolving, and must **404 — not redirect** — on unknown ids, so La Libreta's
+  seed fails loudly when an id rots.
+- `POST /api/videos/exists` (`{ "ids": [...] }` → `{ "present": [...], "missing":
+  [...] }`) is the build-time endpoint La Libreta validates its seed against — it
+  pushes its pinned ids and asserts `missing` is empty. It returns every requested
+  id's status with no truncation (unlike the paginated `GET /api/videos/`).
+
+See `docs/specs/027-libreta-permalinks/spec.md` and La Libreta's
+`docs/specs/012-deep-links/companion-interface.md`.
+
 ## Key Constraints
 
 - **Python `>=3.12`** (set in `pyproject.toml`).

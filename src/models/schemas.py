@@ -8,6 +8,12 @@ class VideoRequest(BaseModel):
     url: HttpUrl
 
 
+class VideoExistsRequest(BaseModel):
+    """Lote de youtube_ids a comprobar — contrato de permalinks con La Libreta (027)."""
+
+    ids: list[str]
+
+
 class Question(BaseModel):
     question: str
     answers: List[str]

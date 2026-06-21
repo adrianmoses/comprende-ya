@@ -13,6 +13,7 @@ from models.database import Question, Video, VideoSegment
 from models.schemas import (
     AutopsyEntryResponse,
     AutopsyExplainRequest,
+    VideoExistsRequest,
     VideoRequest,
     VideoResponse,
 )
@@ -209,6 +210,21 @@ async def get_flows(
             }
             for j in jobs
         ]
+    }
+
+
+@router.post("/exists")
+async def check_videos_exist(request: VideoExistsRequest, db: Session = Depends(get_session)):
+    """Comprobación de existencia por lote — contrato de permalinks con La Libreta.
+
+    La Libreta envía los youtube_ids fijados en su seed y recibe cuáles resuelven.
+    Acotado por la petición, sin paginación. Ver docs/specs/027-libreta-permalinks.
+    """
+    repo = VideoRepository(db)
+    present = set(repo.existing_youtube_ids(request.ids))
+    return {
+        "present": [i for i in request.ids if i in present],
+        "missing": [i for i in request.ids if i not in present],
     }
 
 
