@@ -170,8 +170,11 @@ The image bundles `ffmpeg` and runs `fastapi run src/main.py` on port 8000. Migr
 | `GET` | `/api/videos/{video_id}` | Fetch a processed video + questions |
 | `GET` | `/api/videos/{video_id}/segments` | Transcript segments |
 | `POST`/`GET`/`DELETE` | `/api/videos/{video_id}/progress` | Per-user answer progress |
+| `POST` | `/api/videos/exists` | Batch existence check (`{ids}` → `{present, missing}`) — La Libreta permalink seed validation |
 
 See `src/api/routes/videos.py` for the full surface.
+
+`youtube_id` is an external permalink contract consumed by La Libreta — see [External Contracts](docs/specs/ARCHITECTURE.md#external-contracts) before reusing or rewriting ids.
 
 ## Tests and tooling
 

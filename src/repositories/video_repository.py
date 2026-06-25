@@ -82,6 +82,17 @@ class VideoRepository:
         statement = select(Video).offset(skip).limit(limit).order_by(Video.created_at.desc())
         return list(self.session.exec(statement).all())
 
+    def existing_youtube_ids(self, ids: List[str]) -> List[str]:
+        """youtube_ids de `ids` que existen — contrato de permalinks (027).
+
+        Acotado por la petición (`IN`), proyecta solo la columna id: sin hidratar
+        filas ni cargar relaciones, una sola ida y vuelta.
+        """
+        if not ids:
+            return []
+        statement = select(Video.youtube_id).where(Video.youtube_id.in_(ids))
+        return list(self.session.exec(statement).all())
+
     def to_response(self, video: Video) -> VideoResponse:
         """
         Convierte un modelo de base de datos Video a VideoResponse.
