@@ -109,7 +109,13 @@ def get_recording(chunk_id: int, db: Session = Depends(get_session)):
     row = RecordingRepository(db).get_by_chunk_id(chunk_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Grabación no encontrada")
-    return FileResponse(recording_storage.abs_path(row.file_path), media_type=row.content_type)
+    # no-store: a re-record overwrites at the same URL, so the browser must never
+    # serve a cached take (FileResponse otherwise sets only etag/last-modified).
+    return FileResponse(
+        recording_storage.abs_path(row.file_path),
+        media_type=row.content_type,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.delete("/{chunk_id}/recording", status_code=204)

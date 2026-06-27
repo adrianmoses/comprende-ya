@@ -1,6 +1,7 @@
 import type {
 	Chunk,
 	ChunkSaveRequest,
+	Recording,
 	SaveProgressResponse,
 	TranscriptSegment,
 	VideoDetail,
@@ -14,10 +15,13 @@ const BASE_URL = (
 ).replace(/\/+$/, "");
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-	const response = await fetch(`${BASE_URL}${path}`, {
-		headers: { "Content-Type": "application/json" },
-		...init,
-	});
+	// FormData bodies must NOT carry a JSON content-type — the browser sets the
+	// multipart boundary itself. Only default to JSON for non-FormData requests.
+	const headers =
+		init?.body instanceof FormData
+			? init.headers
+			: { "Content-Type": "application/json", ...init?.headers };
+	const response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
 	if (!response.ok) {
 		throw new Error(`${response.status} ${response.statusText}`);
 	}
@@ -76,6 +80,33 @@ export function saveChunk(body: ChunkSaveRequest): Promise<Chunk> {
 
 export function deleteChunk(id: number): Promise<void> {
 	return api<void>(`/api/chunks/${id}`, { method: "DELETE" });
+}
+
+export function uploadRecording(
+	chunkId: number,
+	blob: Blob,
+	durationSeconds?: number,
+): Promise<Recording> {
+	const form = new FormData();
+	form.append("file", blob, "grabacion.webm");
+	if (durationSeconds != null) {
+		form.append("duration_seconds", String(durationSeconds));
+	}
+	return api<Recording>(`/api/chunks/${chunkId}/recording`, {
+		method: "POST",
+		body: form,
+	});
+}
+
+export function deleteRecording(chunkId: number): Promise<void> {
+	return api<void>(`/api/chunks/${chunkId}/recording`, { method: "DELETE" });
+}
+
+// Direct URL for a native <audio> element. `version` busts the browser cache
+// after a re-record (the stored URL is otherwise stable across overwrites).
+export function getRecordingUrl(chunkId: number, version?: number): string {
+	const suffix = version != null ? `?v=${version}` : "";
+	return `${BASE_URL}/api/chunks/${chunkId}/recording${suffix}`;
 }
 
 export function saveProgress(

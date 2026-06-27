@@ -110,6 +110,14 @@ def test_get_returns_bytes_and_content_type(client, recordings_dir, saved_chunk)
     assert res.headers["content-type"].startswith("audio/webm")
 
 
+def test_get_is_not_browser_cacheable(client, recordings_dir, saved_chunk):
+    # Re-record overwrites at the same URL — the browser must never cache a take,
+    # or playback shows a stale recording after reload/re-record.
+    _post(client, saved_chunk.id, data=b"playback-me")
+    res = client.get(f"/api/chunks/{saved_chunk.id}/recording")
+    assert res.headers.get("cache-control") == "no-store"
+
+
 def test_get_no_recording_404(client, recordings_dir, saved_chunk):
     res = client.get(f"/api/chunks/{saved_chunk.id}/recording")
     assert res.status_code == 404
