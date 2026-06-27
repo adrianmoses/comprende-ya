@@ -91,6 +91,16 @@ export type Chunk = {
 	phrase: string;
 	start_time: number;
 	prompts: Array<string>;
+	has_recording: boolean;
+	created_at: string;
+};
+
+export type Recording = {
+	id: number;
+	chunk_id: number;
+	content_type: string;
+	size_bytes: number;
+	duration_seconds: number | null;
 	created_at: string;
 };
 

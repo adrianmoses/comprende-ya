@@ -28,6 +28,7 @@ env/
 
 # Temporary files
 temp/*
+recordings/*
 *.tmp
 *.log
 

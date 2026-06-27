@@ -218,6 +218,9 @@ __marimo__/
 *.gguf
 .idea/
 
+# Saved speaking-prompt recordings (021) — durable user audio, not committed
+recordings/
+
 # Frontend (webapp/)
 webapp/node_modules/
 webapp/dist/

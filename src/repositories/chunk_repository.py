@@ -26,7 +26,9 @@ class ChunkRepository:
 
     def list_all(self) -> List[Chunk]:
         statement = (
-            select(Chunk).options(selectinload(Chunk.video)).order_by(Chunk.created_at.desc())
+            select(Chunk)
+            .options(selectinload(Chunk.video), selectinload(Chunk.recording))
+            .order_by(Chunk.created_at.desc())
         )
         return list(self.session.exec(statement).all())
 
@@ -65,5 +67,6 @@ class ChunkRepository:
             phrase=row.phrase,
             start_time=row.start_time,
             prompts=json.loads(row.prompts),
+            has_recording=row.recording is not None,
             created_at=row.created_at,
         )

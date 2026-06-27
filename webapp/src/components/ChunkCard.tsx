@@ -1,42 +1,77 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { useAudioRecorder } from "../hooks/useAudioRecorder";
+import { deleteRecording, getRecordingUrl, uploadRecording } from "../lib/api";
 import type { Chunk } from "../lib/api-types";
 import { formatRelative } from "../lib/relative-time";
-
-const REC_STUB_MS = 3500;
 
 type Props = { chunk: Chunk };
 
 export function ChunkCard({ chunk }: Props) {
+	const queryClient = useQueryClient();
 	const [promptIdx, setPromptIdx] = useState(0);
-	const [isRecording, setIsRecording] = useState(false);
-	const recTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Bumped on each successful upload so a re-record reloads the <audio> (the
+	// stored URL is otherwise stable across overwrites and the browser caches it).
+	const [recVersion, setRecVersion] = useState(0);
 	const total = chunk.prompts.length;
 
-	useEffect(() => {
-		return () => {
-			if (recTimeoutRef.current !== null) {
-				clearTimeout(recTimeoutRef.current);
-			}
-		};
-	}, []);
+	const uploadMutation = useMutation({
+		mutationFn: ({ blob, duration }: { blob: Blob; duration: number }) =>
+			uploadRecording(chunk.id, blob, duration),
+		onSuccess: () => {
+			setRecVersion((v) => v + 1);
+			queryClient.invalidateQueries({ queryKey: ["chunks"] });
+		},
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: () => deleteRecording(chunk.id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["chunks"] });
+		},
+	});
+
+	const onComplete = useCallback(
+		(blob: Blob, duration: number) => {
+			deleteMutation.reset();
+			uploadMutation.mutate({ blob, duration });
+		},
+		[deleteMutation, uploadMutation],
+	);
+
+	const recorder = useAudioRecorder({ onComplete });
 
 	const cyclePrompt = () =>
 		setPromptIdx((i) => (total === 0 ? 0 : (i + 1) % total));
 
-	const toggleRec = () => {
+	const isRecording = recorder.status === "recording";
+	const isUploading = uploadMutation.isPending;
+
+	const onRecClick = () => {
 		if (isRecording) {
-			if (recTimeoutRef.current !== null) clearTimeout(recTimeoutRef.current);
-			recTimeoutRef.current = null;
-			setIsRecording(false);
-			return;
+			recorder.stop();
+		} else {
+			uploadMutation.reset();
+			recorder.start();
 		}
-		setIsRecording(true);
-		recTimeoutRef.current = setTimeout(() => {
-			recTimeoutRef.current = null;
-			setIsRecording(false);
-		}, REC_STUB_MS);
 	};
+
+	const recLabel = isUploading
+		? "Subiendo…"
+		: isRecording
+			? "Grabando…"
+			: chunk.has_recording
+				? "Regrabar"
+				: "Grabar respuesta";
+
+	const message = recorder.error
+		? recorder.error
+		: uploadMutation.isError
+			? "No se pudo subir — reintenta."
+			: deleteMutation.isError
+				? "No se pudo borrar — reintenta."
+				: null;
 
 	return (
 		<div className="chunk">
@@ -70,11 +105,12 @@ export function ChunkCard({ chunk }: Props) {
 				<button
 					type="button"
 					className={isRecording ? "rec-btn is-recording" : "rec-btn"}
-					onClick={toggleRec}
-					aria-label="Grabar respuesta (próximamente)"
+					onClick={onRecClick}
+					disabled={isUploading}
+					aria-label={isRecording ? "Parar grabación" : "Grabar respuesta"}
 				>
 					<span className="rec-dot" />
-					{isRecording ? "Grabando…" : "Grabar respuesta"}
+					{recLabel}
 				</button>
 				<button
 					type="button"
@@ -89,6 +125,25 @@ export function ChunkCard({ chunk }: Props) {
 					{total === 0 ? "0/0" : `${promptIdx + 1}/${total}`}
 				</span>
 			</div>
+			{chunk.has_recording && (
+				<div className="chunk-playback">
+					{/* biome-ignore lint/a11y/useMediaCaption: personal voice memo, no transcript track */}
+					<audio
+						controls
+						className="chunk-audio"
+						src={getRecordingUrl(chunk.id, recVersion)}
+					/>
+					<button
+						type="button"
+						className="rec-delete"
+						onClick={() => deleteMutation.mutate()}
+						disabled={deleteMutation.isPending}
+					>
+						{deleteMutation.isPending ? "Borrando…" : "Borrar"}
+					</button>
+				</div>
+			)}
+			{message && <p className="rec-message">{message}</p>}
 		</div>
 	);
 }

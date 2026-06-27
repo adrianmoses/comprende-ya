@@ -131,6 +131,30 @@ class Chunk(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     video: Optional[Video] = Relationship(back_populates="chunks")
+    recording: Optional["Recording"] = Relationship(
+        back_populates="chunk",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "uselist": False},
+    )
+
+
+class Recording(SQLModel, table=True):
+    """Grabación de voz del usuario para un chunk — una por chunk, se sobrescribe (021).
+
+    Los bytes de audio viven en disco bajo `settings.RECORDINGS_DIR`; aquí solo se
+    guarda la ruta + metadatos. Sin evaluación/ASR: es para que el usuario se
+    reescuche."""
+
+    __tablename__ = "recordings"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chunk_id: int = Field(foreign_key="chunks.id", index=True, unique=True)
+    file_path: str  # ruta relativa bajo RECORDINGS_DIR, nombre generado en servidor
+    content_type: str  # p.ej. "audio/webm;codecs=opus" — se devuelve al reproducir
+    size_bytes: int
+    duration_seconds: Optional[float] = None  # mejor esfuerzo, informado por el cliente
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    chunk: Optional[Chunk] = Relationship(back_populates="recording")
 
 
 class ProcessingJob(SQLModel, table=True):

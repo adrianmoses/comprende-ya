@@ -103,4 +103,14 @@ class ChunkResponse(BaseModel):
     phrase: str
     start_time: float
     prompts: List[str]
+    has_recording: bool  # si el chunk tiene una grabación guardada (021)
+    created_at: datetime
+
+
+class RecordingResponse(BaseModel):
+    id: int
+    chunk_id: int
+    content_type: str
+    size_bytes: int
+    duration_seconds: Optional[float]
     created_at: datetime
