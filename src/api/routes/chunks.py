@@ -1,18 +1,24 @@
 """Endpoints para la biblioteca de Mis frases (chunks)."""
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from db import get_session
-from models.schemas import ChunkResponse, ChunkSaveRequest
-from repositories import SegmentsRepository, VideoRepository
+from models.database import Chunk
+from models.schemas import ChunkResponse, ChunkSaveRequest, RecordingResponse
+from repositories import RecordingRepository, SegmentsRepository, VideoRepository
 from repositories.autopsy_repository import normalize_phrase
 from repositories.chunk_repository import ChunkRepository
+from services import recording_storage
 from services.chunk_prompts import ChunkPromptsGenerationError, chunk_prompts_service
 
 router = APIRouter(prefix="/api/chunks", tags=["chunks"])
+
+# Tope blando de subida — generoso para una toma de una frase a bitrate opus (021).
+MAX_RECORDING_BYTES = 10 * 1024 * 1024
 
 
 @router.post("", response_model=ChunkResponse, status_code=201)
@@ -54,7 +60,65 @@ def list_chunks(db: Session = Depends(get_session)):
 
 @router.delete("/{chunk_id}", status_code=204)
 def delete_chunk(chunk_id: int, db: Session = Depends(get_session)):
-    """Elimina un chunk. 404 si no existe."""
+    """Elimina un chunk (y su grabación, fila + archivo). 404 si no existe."""
+    # Borra el archivo de audio antes de tumbar el chunk; la fila `recordings`
+    # se va sola por el cascade, pero el archivo en disco hay que quitarlo a mano.
+    recording = RecordingRepository(db).get_by_chunk_id(chunk_id)
+    if recording is not None:
+        recording_storage.remove(recording.file_path)
+
     if not ChunkRepository(db).delete(chunk_id):
         raise HTTPException(status_code=404, detail="Chunk no encontrado")
+    return Response(status_code=204)
+
+
+@router.post(
+    "/{chunk_id}/recording",
+    response_model=RecordingResponse,
+    status_code=201,
+)
+async def upload_recording(
+    chunk_id: int,
+    file: UploadFile = File(...),
+    duration_seconds: Optional[float] = Form(default=None),
+    db: Session = Depends(get_session),
+):
+    """Sube (o sobrescribe) la grabación de un chunk. Una por chunk."""
+    chunk = db.get(Chunk, chunk_id)
+    if chunk is None:
+        raise HTTPException(status_code=404, detail="Chunk no encontrado")
+
+    data = await file.read()
+    if len(data) > MAX_RECORDING_BYTES:
+        raise HTTPException(status_code=413, detail="Grabación demasiado grande")
+
+    repo = RecordingRepository(db)
+    existing = repo.get_by_chunk_id(chunk_id)
+    if existing is not None:
+        recording_storage.remove(existing.file_path)
+
+    content_type = file.content_type or "application/octet-stream"
+    file_path = recording_storage.write(content_type, data)
+    row = repo.upsert(chunk_id, file_path, content_type, len(data), duration_seconds)
+    return repo.to_response(row)
+
+
+@router.get("/{chunk_id}/recording")
+def get_recording(chunk_id: int, db: Session = Depends(get_session)):
+    """Sirve el audio guardado del chunk. 404 si no hay grabación."""
+    row = RecordingRepository(db).get_by_chunk_id(chunk_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Grabación no encontrada")
+    return FileResponse(recording_storage.abs_path(row.file_path), media_type=row.content_type)
+
+
+@router.delete("/{chunk_id}/recording", status_code=204)
+def delete_recording(chunk_id: int, db: Session = Depends(get_session)):
+    """Borra la grabación de un chunk (fila + archivo). 404 si no existe."""
+    repo = RecordingRepository(db)
+    row = repo.get_by_chunk_id(chunk_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Grabación no encontrada")
+    recording_storage.remove(row.file_path)
+    repo.delete(chunk_id)
     return Response(status_code=204)

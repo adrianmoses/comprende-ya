@@ -26,6 +26,7 @@ class Settings:
 
     # Directorios
     TEMP_DIR = "temp"
+    RECORDINGS_DIR = os.getenv("RECORDINGS_DIR", "recordings")  # grabaciones de Mis frases (021)
     MAX_VIDEO_DURATION = 3600  # 1 hour
 
 
@@ -33,3 +34,4 @@ settings = Settings()
 
 
 os.makedirs(settings.TEMP_DIR, exist_ok=True)
+os.makedirs(settings.RECORDINGS_DIR, exist_ok=True)
