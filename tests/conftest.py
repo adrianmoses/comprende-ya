@@ -9,41 +9,54 @@ os.environ.setdefault("OPENAI_API_KEY", "test-openai")
 os.environ.setdefault("YOUTUBE_API_KEY", "test-youtube")
 os.environ.setdefault("PREFECT_API_URL", "http://localhost:0")
 
-# DB url is force-set (not setdefault) — alembic/env.py:23 sets the URL on the
-# Config object from settings.DATABASE_URL, so we need settings to see SQLite,
-# not whatever the developer's shell happens to have exported.
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Tests run against a REAL Postgres (parity with prod — no SQLite dialect drift).
+# DATABASE_URL_TEST overrides (CI points it at a services-postgres); the default is
+# a local comprende_ya_test database. Force-set DATABASE_URL so settings/db/alembic
+# all see the test DB, not whatever the shell exported.
+os.environ["DATABASE_URL"] = os.environ.get(
+    "DATABASE_URL_TEST",
+    "postgresql://postgres:postgres@localhost:5432/comprende_ya_test",
+)
 
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, event
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session
+from sqlalchemy import text
+from sqlmodel import Session, SQLModel
+
+# Populate SQLModel.metadata (drop_all / truncate below need every table registered).
+from db import engine as db_engine
+from models import database  # noqa: F401
+
+TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
 
-@pytest.fixture
-def engine():
-    """In-memory SQLite engine with FK enforcement and Alembic schema applied."""
-    eng = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    @event.listens_for(eng, "connect")
-    def _fk_pragma(dbapi_conn, _):
-        # ON DELETE SET NULL needs FK enforcement, off by default in SQLite.
-        dbapi_conn.execute("PRAGMA foreign_keys = ON")
-
+@pytest.fixture(scope="session", autouse=True)
+def _schema():
+    """Build the schema once per session from the Alembic baseline, on a clean slate."""
+    SQLModel.metadata.drop_all(db_engine)
+    with db_engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", "sqlite:///:memory:")
+    cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
+    command.upgrade(cfg, "head")
+    yield
 
-    with eng.begin() as conn:
-        cfg.attributes["connection"] = conn
-        command.upgrade(cfg, "head")
 
-    yield eng
+@pytest.fixture(autouse=True)
+def _isolate(_schema):
+    """Per-test isolation: wipe all tables after each test. Repos commit, so a
+    transaction rollback wouldn't undo their writes — TRUNCATE does."""
+    yield
+    tables = ", ".join(f'"{t.name}"' for t in SQLModel.metadata.sorted_tables)
+    with db_engine.begin() as conn:
+        conn.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+
+
+@pytest.fixture(scope="session")
+def engine(_schema):
+    """The Postgres engine (built from settings.DATABASE_URL == the test DB)."""
+    return db_engine
 
 
 @pytest.fixture
