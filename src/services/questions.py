@@ -188,7 +188,7 @@ class QuestionService:
         # """
 
         message = self.client.messages.create(
-            model="claude-4-sonnet-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=2500,
             messages=[
                 {
@@ -257,7 +257,7 @@ class QuestionService:
             """
 
             message = self.client.messages.create(
-                model="claude-4-sonnet-20250514",
+                model="claude-sonnet-4-6",
                 max_tokens=2000,
                 messages=[
                     {

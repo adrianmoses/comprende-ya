@@ -15,7 +15,7 @@ from anthropic import Anthropic
 from config import settings
 from repositories.autopsy_repository import AutopsyPayload
 
-MODEL = "claude-4-sonnet-20250514"
+MODEL = "claude-sonnet-4-6"
 MAX_TOKENS = 1200
 
 _PROMPT_TEMPLATE = """\
