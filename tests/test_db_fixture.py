@@ -1,7 +1,8 @@
 """Sanity tests for the conftest engine/session fixtures.
 
-Validates Spike 2 from the plan: migrations apply against in-memory SQLite,
-CHECK constraint on processing_jobs.status fires, FK ON DELETE SET NULL works.
+Run against real Postgres (029): the Alembic baseline applies, the CHECK constraint
+on processing_jobs.status fires, and FK ON DELETE SET NULL works — now validated by
+the production engine rather than SQLite.
 """
 
 import pytest
@@ -18,6 +19,9 @@ def test_all_tables_present(engine):
         "answer_progress",
         "frase_exercise",
         "processing_jobs",
+        "phrase_autopsy",
+        "chunks",
+        "recordings",
         "alembic_version",
     }
     actual = set(inspect(engine).get_table_names())
@@ -26,7 +30,7 @@ def test_all_tables_present(engine):
 
 
 def test_processing_jobs_status_check_constraint(engine):
-    """The CHECK constraint lives only in the migration body — assert SQLite enforces it."""
+    """The CHECK constraint is declared on the model (029) — assert Postgres enforces it."""
     with engine.begin() as conn:
         with pytest.raises(IntegrityError):
             conn.execute(

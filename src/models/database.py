@@ -1,7 +1,14 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+)
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -68,10 +75,22 @@ class AnswerProgress(SQLModel, table=True):
     """Modelo para trackear progreso de respuestas"""
 
     __tablename__ = "answer_progress"
+    __table_args__ = (
+        UniqueConstraint("video_id", "question_id", name="unique_video_question_progress"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    video_id: int = Field(foreign_key="videos.id", index=True)
-    question_id: int = Field(foreign_key="questions.id", index=True)
+    # FK ondelete declarado en el modelo para que coincida con el esquema (029).
+    video_id: int = Field(
+        sa_column=Column(
+            Integer, ForeignKey("videos.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
+    question_id: int = Field(
+        sa_column=Column(
+            Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
     user_answer: int  # Índice de la respuesta seleccionada (0-3)
     is_correct: bool
     answered_at: datetime = Field(default_factory=datetime.utcnow)
@@ -81,7 +100,11 @@ class FraseExercise(SQLModel, table=True):
     __tablename__ = "frase_exercise"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    video_id: int = Field(foreign_key="videos.id", index=True)
+    video_id: int = Field(
+        sa_column=Column(
+            Integer, ForeignKey("videos.id", ondelete="CASCADE"), nullable=False, index=True
+        )
+    )
     start_time: float
     end_time: float
     original_transcript_text: str
@@ -147,7 +170,15 @@ class Recording(SQLModel, table=True):
     __tablename__ = "recordings"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    chunk_id: int = Field(foreign_key="chunks.id", index=True, unique=True)
+    chunk_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("chunks.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+            unique=True,
+        )
+    )
     file_path: str  # ruta relativa bajo RECORDINGS_DIR, nombre generado en servidor
     content_type: str  # p.ej. "audio/webm;codecs=opus" — se devuelve al reproducir
     size_bytes: int
@@ -161,13 +192,24 @@ class ProcessingJob(SQLModel, table=True):
     """Estado persistido de un flow de procesamiento de video."""
 
     __tablename__ = "processing_jobs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('PENDING','RUNNING','COMPLETED','FAILED')",
+            name="ck_processing_jobs_status",
+        ),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     flow_run_id: str = Field(index=True, unique=True, max_length=36)
     youtube_url: str
     youtube_video_id: str = Field(index=True, max_length=32)
     status: str = Field(default="PENDING", max_length=16, index=True)
-    error: Optional[str] = None
-    video_id: Optional[int] = Field(default=None, foreign_key="videos.id", index=True)
+    error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    video_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            Integer, ForeignKey("videos.id", ondelete="SET NULL"), nullable=True, index=True
+        ),
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
