@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.chunk_prompts import (
+    MODEL,
     ChunkPromptsGenerationError,
     chunk_prompts_service,
 )
@@ -143,7 +144,7 @@ def test_prompt_uses_locked_model(monkeypatch):
     _patch_messages(monkeypatch, stub)
 
     chunk_prompts_service.generate("frase", ["contexto"])
-    assert stub.calls[0]["model"] == "claude-sonnet-4-6"
+    assert stub.calls[0]["model"] == MODEL
 
 
 def test_prompt_empty_context_uses_placeholder(monkeypatch):

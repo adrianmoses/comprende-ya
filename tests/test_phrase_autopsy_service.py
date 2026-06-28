@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.phrase_autopsy import (
+    MODEL,
     AutopsyGenerationError,
     PhraseAutopsyService,
     phrase_autopsy_service,
@@ -147,7 +148,7 @@ def test_singleton_uses_locked_model(monkeypatch):
 
     phrase_autopsy_service.explain("frase", ["x"])
 
-    assert stub.calls[0]["model"] == "claude-sonnet-4-6"
+    assert stub.calls[0]["model"] == MODEL
 
 
 def test_construct_service_directly():

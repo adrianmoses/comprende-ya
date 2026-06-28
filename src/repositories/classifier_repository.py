@@ -4,6 +4,7 @@ import os
 import anthropic
 from sqlmodel import Session
 
+from config import settings
 from models.database import Video
 
 
@@ -34,7 +35,7 @@ class ClassifierRepository:
     """
 
         message = self.client.messages.create(
-            model="claude-sonnet-4-6",
+            model=settings.CLAUDE_MODEL_CLASSIFY,
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
         )

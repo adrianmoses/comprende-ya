@@ -16,6 +16,11 @@ class Settings:
 
     YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
+    # Modelos Claude (026). Un nivel de "generación" para preguntas/marcadores/
+    # autopsias/consignas, y uno más barato de "clasificación" para el dialecto.
+    CLAUDE_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+    CLAUDE_MODEL_CLASSIFY = os.getenv("ANTHROPIC_MODEL_CLASSIFY", "claude-haiku-4-5")
+
     # Validar que existen las API keys
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY no está configurado")

@@ -14,7 +14,7 @@ from anthropic import Anthropic
 
 from config import settings
 
-MODEL = "claude-sonnet-4-6"
+MODEL = settings.CLAUDE_MODEL
 MAX_TOKENS = 1200
 
 _PROMPT_TEMPLATE = """\
