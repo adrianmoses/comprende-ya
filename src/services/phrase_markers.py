@@ -25,7 +25,7 @@ from anthropic import Anthropic
 from config import settings
 from models.database import VideoSegment
 
-MODEL = "claude-sonnet-4-6"
+MODEL = settings.CLAUDE_MODEL
 MAX_TOKENS = 4000
 MIN_MARKERS = 5
 MAX_MARKERS = 15

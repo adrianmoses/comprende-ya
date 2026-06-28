@@ -14,6 +14,7 @@ import pytest
 
 from models.database import VideoSegment
 from services.phrase_markers import (
+    MODEL,
     PhraseMarkersGenerationError,
     phrase_markers_service,
 )
@@ -162,7 +163,7 @@ def test_prompt_uses_locked_model(monkeypatch):
     _patch_messages(monkeypatch, stub)
 
     phrase_markers_service.explain_video(_segments((0, 0.0, "x")))
-    assert stub.calls[0]["model"] == "claude-sonnet-4-6"
+    assert stub.calls[0]["model"] == MODEL
 
 
 def test_prompt_mentions_marker_bounds(monkeypatch):

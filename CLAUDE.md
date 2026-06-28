@@ -76,6 +76,6 @@ Poll `GET /api/videos/status/{flow_run_id}` for progress.
 - **Service singletons** instantiated at module level (e.g., `youtube_service`, `question_service`)
 - **Dependency injection** via FastAPI's `Depends()` for DB sessions
 - **JSON strings** stored in DB columns for complex data (answers, hints, transcript segments)
-- AI models used: `claude-4-sonnet-20250514` for text generation, OpenAI Whisper for transcription
+- AI models used: `settings.CLAUDE_MODEL` (default `claude-sonnet-4-6`) for text generation and `settings.CLAUDE_MODEL_CLASSIFY` (default `claude-haiku-4-5`) for dialect classification — both centralized in `config.py`, overridable via `ANTHROPIC_MODEL` / `ANTHROPIC_MODEL_CLASSIFY`; OpenAI Whisper for transcription
 - CORS allows `localhost:3000` (frontend dev)
 - Video duration limit: 1 hour
