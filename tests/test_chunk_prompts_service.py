@@ -143,7 +143,7 @@ def test_prompt_uses_locked_model(monkeypatch):
     _patch_messages(monkeypatch, stub)
 
     chunk_prompts_service.generate("frase", ["contexto"])
-    assert stub.calls[0]["model"] == "claude-4-sonnet-20250514"
+    assert stub.calls[0]["model"] == "claude-sonnet-4-6"
 
 
 def test_prompt_empty_context_uses_placeholder(monkeypatch):

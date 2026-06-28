@@ -162,7 +162,7 @@ def test_prompt_uses_locked_model(monkeypatch):
     _patch_messages(monkeypatch, stub)
 
     phrase_markers_service.explain_video(_segments((0, 0.0, "x")))
-    assert stub.calls[0]["model"] == "claude-4-sonnet-20250514"
+    assert stub.calls[0]["model"] == "claude-sonnet-4-6"
 
 
 def test_prompt_mentions_marker_bounds(monkeypatch):
