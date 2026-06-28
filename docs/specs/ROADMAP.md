@@ -31,7 +31,7 @@
 | 019 | Backend: chunk library schema + endpoints            | implemented   | [019-chunk-library/spec.md](./019-chunk-library/spec.md) |
 | 020 | Frontend: Mis frases (chunk library + speaking prompts) | implemented | [020-mis-frases/spec.md](./020-mis-frases/spec.md) |
 | 021 | Backend: speaking-prompt audio recording upload + playback API | implemented | [021-speaking-prompt-recordings/spec.md](./021-speaking-prompt-recordings/spec.md) · [decision.md](./021-speaking-prompt-recordings/decision.md) |
-| 022 | Backend: user profile + streak + weekly KPIs         | planned       | —    |
+| 022 | Backend: user profile + streak + weekly KPIs         | in-progress   | [022-user-profile-kpis/spec.md](./022-user-profile-kpis/spec.md) |
 | 023 | Tweaks panel (theme, accent, transcript size, level badges) | planned | —    |
 | 024 | Configurable difficulty for fill-in-blank exercises  | planned       | —    |
 | 025 | Test infrastructure + ruff bootstrap (pytest + DB fixture + CI) | implemented | [025-test-infrastructure/spec.md](./025-test-infrastructure/spec.md) |
@@ -52,6 +52,7 @@
 
 | Date       | Change                                                      |
 |------------|-------------------------------------------------------------|
+| 2026-06-28 | 022 → `in-progress`. Spec drafted: backs Inicio's three placeholder KPIs (Esta semana / Racha / Comprensión) + greeting/profile chrome with real aggregates. Two new tables — singleton `profile` (name/level/created_at, seeded; 023 grows into it) + append-only `study_session`. New `/api/profile` router: `GET` (identity + all KPIs, one round trip), `POST /session` (listening heartbeat), `PUT` (edit name/level). Minutes via **real session tracking** (Escuchando posts PLAYING-state heartbeats) over a proxy; comprehension = **all-time** accuracy, nullable (`—` not `0 %`); streak = backward walk over distinct active days. **Full-stack** (Inicio wiring + heartbeat in scope). Confidence Medium — backend is small aggregate SQL; risk is the playback-time heartbeat (same class as 015's IFrame-player spike), validated by a ~30-min localhost spike. 3 Open Questions parked (Día semantics, timezone, MCQ-only-day-counts-as-active). Tests on Postgres (029 fixture); frontend stays manual-smoke. |
 | 2026-05-02 | Initial roadmap inferred by audit skill. Backend features 001–010 marked `implemented`; legacy sync endpoint 011 marked `deprecated`; flow-status persistence (012) marked `in-progress` — the flow itself ships, only the polling surface needs a `processing_jobs` table. Frontend features 013–016, 020, 023 marked `planned` based on `docs/artefacts/` design bundle; backend follow-ups (017–019, 021, 022, 024, 025, 026) added as gaps surfaced in OVERVIEW audit notes. |
 | 2026-05-02 | 012 → `implemented`. `processing_jobs` table replaces the in-memory dict; `/status` response trimmed (drops `result`, adds `youtube_video_id` + `video_id`); `/flows` paginates. Shipped without automated tests — 025 (test suite bootstrap) is the next prerequisite before further backend work. |
 | 2026-05-02 | 025 → `in-progress`. Spec drafted: pytest + DB fixture (SQLite-first, Postgres-via-services-container as fallback) + monkeypatched service singletons + ruff (lint+format) + GitHub Actions. |
