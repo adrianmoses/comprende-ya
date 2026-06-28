@@ -39,9 +39,9 @@ export function TopBar() {
 				})}
 			</div>
 			<div className="top-actions">
-				<button type="button" className="btn ghost sm btn--muted">
+				<Link to="/search" className="btn ghost sm">
 					<IconSearch /> Buscar episodios
-				</button>
+				</Link>
 				<button type="button" className="btn ghost sm">
 					<IconSettings />
 				</button>
