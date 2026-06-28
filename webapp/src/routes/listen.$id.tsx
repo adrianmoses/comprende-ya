@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AutopsyPanel } from "../components/AutopsyPanel";
+import { useStudyHeartbeat } from "../hooks/useStudyHeartbeat";
 import { useYouTubePlayer } from "../hooks/useYouTubePlayer";
 import {
 	deleteChunk,
@@ -10,6 +11,7 @@ import {
 	getVideoProgress,
 	getVideoSegments,
 	listChunks,
+	postSession,
 	saveChunk,
 	saveProgress,
 } from "../lib/api";
@@ -114,6 +116,16 @@ function Escuchando() {
 	const player = useYouTubePlayer({
 		containerId: PLAYER_CONTAINER_ID,
 		videoId: youtubeId,
+	});
+
+	// Report listening time so Inicio's "Esta semana" KPI accrues (item 022).
+	// Fire-and-forget; on success refresh the cached profile so a later Inicio
+	// visit reflects it. The invalidate is best-effort — a failed beat just
+	// drops that slice rather than surfacing an error mid-listening.
+	useStudyHeartbeat(player.isPlaying, (seconds) => {
+		postSession(seconds)
+			.then(() => queryClient.invalidateQueries({ queryKey: ["profile"] }))
+			.catch(() => {});
 	});
 
 	const [currentTime, setCurrentTime] = useState(0);

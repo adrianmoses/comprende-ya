@@ -109,3 +109,17 @@ export type ChunkSaveRequest = {
 	phrase: string;
 	start_time: number;
 };
+
+export type ProfileResponse = {
+	name: string;
+	level: string;
+	dia: number; // mirrors streak (item 022, OQ1)
+	week_minutes: number;
+	streak: number;
+	comprehension: number | null; // null = no MCQs answered yet
+};
+
+export type ProfileUpdateRequest = {
+	name?: string;
+	level?: string;
+};

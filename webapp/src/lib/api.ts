@@ -1,6 +1,8 @@
 import type {
 	Chunk,
 	ChunkSaveRequest,
+	ProfileResponse,
+	ProfileUpdateRequest,
 	Recording,
 	SaveProgressResponse,
 	TranscriptSegment,
@@ -107,6 +109,28 @@ export function deleteRecording(chunkId: number): Promise<void> {
 export function getRecordingUrl(chunkId: number, version?: number): string {
 	const suffix = version != null ? `?v=${version}` : "";
 	return `${BASE_URL}/api/chunks/${chunkId}/recording${suffix}`;
+}
+
+export function getProfile(): Promise<ProfileResponse> {
+	return api<ProfileResponse>("/api/profile");
+}
+
+// Reports a slice of listening time. Fire-and-forget from the Escuchando
+// heartbeat; the backend appends a study_session row (item 022).
+export function postSession(seconds: number): Promise<void> {
+	return api<void>("/api/profile/session", {
+		method: "POST",
+		body: JSON.stringify({ seconds }),
+	});
+}
+
+export function updateProfile(
+	body: ProfileUpdateRequest,
+): Promise<ProfileResponse> {
+	return api<ProfileResponse>("/api/profile", {
+		method: "PUT",
+		body: JSON.stringify(body),
+	});
 }
 
 export function saveProgress(

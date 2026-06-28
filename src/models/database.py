@@ -213,3 +213,27 @@ class ProcessingJob(SQLModel, table=True):
     )
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Profile(SQLModel, table=True):
+    """Perfil singleton del único usuario (sin auth). Una sola fila (id=1),
+    creada de forma perezosa por el repositorio (022)."""
+
+    __tablename__ = "profile"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(default="Ana")
+    level: str = Field(default="B2")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class StudySession(SQLModel, table=True):
+    """Registro append-only de tiempo de escucha. Cada fila son `seconds` de
+    reproducción reportados por el frontend; los minutos de la semana se suman
+    sobre `created_at` (022)."""
+
+    __tablename__ = "study_session"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    seconds: int
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
