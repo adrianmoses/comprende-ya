@@ -27,14 +27,20 @@ from services.phrase_autopsy import AutopsyGenerationError, phrase_autopsy_servi
 from services.questions import question_service
 from services.transcription import transcription_service
 from services.youtube import youtube_service
-from services.youtube_search import youtube_search
+from services.youtube_search import YoutubeSearchError, youtube_search
 from services.youtube_transcript import youtube_transcript_service
 
 router = APIRouter()
 
 
-async def run_flow_background(flow_run_id: str, video_url: str, force: bool = False):
-    """Ejecuta el flow en background y persiste el estado en processing_jobs."""
+def run_flow_background(flow_run_id: str, video_url: str, force: bool = False):
+    """Ejecuta el flow en background y persiste el estado en processing_jobs.
+
+    Función SÍNCRONA a propósito: Starlette ejecuta una BackgroundTask no-async en
+    su threadpool (run_in_threadpool), fuera del event loop. Si fuera `async def`,
+    `process_video_flow` (bloqueante, minutos) ahogaría el loop y la respuesta
+    `PENDING` ya encolada no se vaciaría hasta terminar el flow — el cliente vería
+    el POST "colgado" y nunca llegaría a sondear /status (031)."""
     # Mark RUNNING. We open and close the session before running the flow so
     # we don't hold a connection from the pool across the multi-minute job.
     try:
@@ -69,7 +75,13 @@ async def search_videos(
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query no puede estar vacío")
 
-    results = youtube_search.search_videos(query, max_results)
+    try:
+        results = youtube_search.search_videos(query, max_results)
+    except YoutubeSearchError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Búsqueda no disponible, intenta de nuevo",
+        ) from exc
     return {"results": results}
 
 

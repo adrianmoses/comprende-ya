@@ -7,6 +7,7 @@ import {
 	IconHome,
 	IconLibrary,
 	IconPlay,
+	IconSearch,
 	IconStats,
 } from "./icons";
 
@@ -27,6 +28,14 @@ const HOME_ITEM: StaticStudyItem = {
 	to: "/",
 	matchPrefix: "/",
 	icon: IconHome,
+};
+
+const SEARCH_ITEM: StaticStudyItem = {
+	id: "search",
+	label: "Buscar",
+	to: "/search",
+	matchPrefix: "/search",
+	icon: IconSearch,
 };
 
 const CHUNKS_ITEM: StaticStudyItem = {
@@ -97,6 +106,11 @@ export function Rail() {
 				<StaticNavLink
 					item={HOME_ITEM}
 					active={isActive(HOME_ITEM.matchPrefix)}
+				/>
+
+				<StaticNavLink
+					item={SEARCH_ITEM}
+					active={isActive(SEARCH_ITEM.matchPrefix)}
 				/>
 
 				{currentVideo && (

@@ -221,6 +221,9 @@ __marimo__/
 # Saved speaking-prompt recordings (021) — durable user audio, not committed
 recordings/
 
+# Transient audio scratch — yt-dlp writes here during processing, cleaned per-file
+temp/
+
 # Frontend (webapp/)
 webapp/node_modules/
 webapp/dist/

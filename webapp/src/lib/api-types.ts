@@ -123,3 +123,41 @@ export type ProfileUpdateRequest = {
 	name?: string;
 	level?: string;
 };
+
+export type SearchResult = {
+	video_id: string; // YouTube id
+	url: string;
+	title: string;
+	description: string;
+	thumbnail: string;
+	channel_title: string;
+	published_at: string;
+	duration: number; // seconds
+	duration_formatted: string;
+	view_count: number;
+	view_count_formatted: string;
+};
+
+export type SearchResponse = { results: Array<SearchResult> };
+
+export type ExistsResponse = { present: Array<string>; missing: Array<string> };
+
+// POST /process-async returns one of two shapes, discriminated by `status` (031).
+export type ProcessAsyncResponse =
+	| {
+			status: "EXISTS";
+			message: string;
+			result: { video_id: string; id: number };
+	  }
+	| { status: "PENDING"; message: string; flow_run_id: string };
+
+export type FlowStatusValue = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+
+export type FlowStatus = {
+	flow_run_id: string;
+	status: FlowStatusValue;
+	url: string;
+	youtube_video_id: string;
+	video_id: number | null;
+	error?: string;
+};

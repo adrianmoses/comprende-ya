@@ -2,8 +2,15 @@ from typing import Any, Dict, List
 
 import isodate
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from config import settings
+
+
+class YoutubeSearchError(Exception):
+    """La YouTube Data API falló (cuota agotada, clave inválida, error transitorio).
+
+    El router lo mapea a un 503 limpio en vez de dejar escapar un 500 opaco (031)."""
 
 
 class YoutubeSearch:
@@ -29,7 +36,10 @@ class YoutubeSearch:
             relevanceLanguage="es",
             type="video",  # Solo videos, no playlists ni canales
         )
-        search_response = search_request.execute()
+        try:
+            search_response = search_request.execute()
+        except HttpError as exc:
+            raise YoutubeSearchError(str(exc)) from exc
 
         # Extraer IDs de videos
         video_ids = [
@@ -45,7 +55,10 @@ class YoutubeSearch:
         videos_request = self.youtube.videos().list(
             part="contentDetails,statistics,snippet", id=",".join(video_ids)
         )
-        videos_response = videos_request.execute()
+        try:
+            videos_response = videos_request.execute()
+        except HttpError as exc:
+            raise YoutubeSearchError(str(exc)) from exc
 
         # 3. Formatear resultados
         results = []
