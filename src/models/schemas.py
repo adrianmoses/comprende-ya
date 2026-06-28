@@ -114,3 +114,25 @@ class RecordingResponse(BaseModel):
     size_bytes: int
     duration_seconds: Optional[float]
     created_at: datetime
+
+
+class ProfileResponse(BaseModel):
+    """Identidad + KPIs de Inicio en una sola respuesta (022)."""
+
+    name: str
+    level: str
+    dia: int  # día N del topbar — igual a `streak` (OQ1)
+    week_minutes: int  # minutos de escucha en la semana actual (lunes→, UTC)
+    streak: int  # días consecutivos de actividad
+    comprehension: Optional[int]  # % acierto histórico; None cuando no hay respuestas
+
+
+class SessionRequest(BaseModel):
+    """Latido de escucha desde Escuchando: segundos de reproducción acumulados."""
+
+    seconds: int = Field(gt=0, le=3600)
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=80)
+    level: Optional[str] = Field(default=None, min_length=1, max_length=16)

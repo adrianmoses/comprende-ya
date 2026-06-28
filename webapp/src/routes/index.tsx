@@ -1,8 +1,17 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getVideoProgress, listChunks, listVideos } from "../lib/api";
-import type { VideoListItem, VideoProgressResponse } from "../lib/api-types";
-import { formatDuration } from "../lib/formatting";
+import {
+	getProfile,
+	getVideoProgress,
+	listChunks,
+	listVideos,
+} from "../lib/api";
+import type {
+	ProfileResponse,
+	VideoListItem,
+	VideoProgressResponse,
+} from "../lib/api-types";
+import { formatDuration, formatWeekMinutes } from "../lib/formatting";
 
 export const Route = createFileRoute("/")({ component: Inicio });
 
@@ -35,6 +44,10 @@ function Inicio() {
 	const chunksQuery = useQuery({
 		queryKey: ["chunks"],
 		queryFn: listChunks,
+	});
+	const profileQuery = useQuery({
+		queryKey: ["profile"],
+		queryFn: getProfile,
 	});
 	const videos = videosQuery.data?.videos ?? [];
 
@@ -75,8 +88,10 @@ function Inicio() {
 
 	return (
 		<div className="page">
-			<Greeting hasContinue={hasContinue} />
+			<Greeting hasContinue={hasContinue} name={profileQuery.data?.name} />
 			<KpiGrid
+				profile={profileQuery.data}
+				profileLoading={profileQuery.isLoading}
 				chunksCount={chunksQuery.data?.length}
 				chunksLoading={chunksQuery.isLoading}
 			/>
@@ -131,10 +146,16 @@ function Inicio() {
 	);
 }
 
-function Greeting({ hasContinue }: { hasContinue: boolean }) {
+function Greeting({
+	hasContinue,
+	name,
+}: {
+	hasContinue: boolean;
+	name: string | undefined;
+}) {
 	return (
 		<>
-			<h1 className="page-h">Buenos días, Ana.</h1>
+			<h1 className="page-h">Buenos días, {name ?? "Ana"}.</h1>
 			<p className="page-sub">
 				{hasContinue
 					? "Continúa donde lo dejaste o explora un episodio nuevo de tu biblioteca."
@@ -145,17 +166,27 @@ function Greeting({ hasContinue }: { hasContinue: boolean }) {
 }
 
 function KpiGrid({
+	profile,
+	profileLoading,
 	chunksCount,
 	chunksLoading,
 }: {
+	profile: ProfileResponse | undefined;
+	profileLoading: boolean;
 	chunksCount: number | undefined;
 	chunksLoading: boolean;
 }) {
+	const comprehension =
+		profile?.comprehension == null ? "—" : `${profile.comprehension} %`;
 	return (
 		<div className="kpis">
 			<div className="kpi">
 				<div className="kpi-label">Esta semana</div>
-				<div className="kpi-val kpi-pending">—</div>
+				<div className={profileLoading ? "kpi-val kpi-pending" : "kpi-val"}>
+					{profileLoading || !profile
+						? "—"
+						: formatWeekMinutes(profile.week_minutes)}
+				</div>
 			</div>
 			<div className="kpi">
 				<div className="kpi-label">Frases guardadas</div>
@@ -165,11 +196,21 @@ function KpiGrid({
 			</div>
 			<div className="kpi">
 				<div className="kpi-label">Racha</div>
-				<div className="kpi-val kpi-pending">—</div>
+				<div className={profileLoading ? "kpi-val kpi-pending" : "kpi-val"}>
+					{profileLoading || !profile ? "—" : profile.streak}
+				</div>
 			</div>
 			<div className="kpi">
 				<div className="kpi-label">Comprensión</div>
-				<div className="kpi-val kpi-pending">—</div>
+				<div
+					className={
+						profileLoading || profile?.comprehension == null
+							? "kpi-val kpi-pending"
+							: "kpi-val"
+					}
+				>
+					{profileLoading ? "—" : comprehension}
+				</div>
 			</div>
 		</div>
 	);
