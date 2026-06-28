@@ -1,10 +1,14 @@
 import type {
 	Chunk,
 	ChunkSaveRequest,
+	ExistsResponse,
+	FlowStatus,
+	ProcessAsyncResponse,
 	ProfileResponse,
 	ProfileUpdateRequest,
 	Recording,
 	SaveProgressResponse,
+	SearchResponse,
 	TranscriptSegment,
 	VideoDetail,
 	VideoListResponse,
@@ -109,6 +113,31 @@ export function deleteRecording(chunkId: number): Promise<void> {
 export function getRecordingUrl(chunkId: number, version?: number): string {
 	const suffix = version != null ? `?v=${version}` : "";
 	return `${BASE_URL}/api/chunks/${chunkId}/recording${suffix}`;
+}
+
+// Buscar — YouTube search + add-to-library (031).
+export function searchVideos(query: string): Promise<SearchResponse> {
+	const params = new URLSearchParams({ query, max_results: "12" });
+	return api<SearchResponse>(`/api/videos/search?${params}`);
+}
+
+// Which youtube_ids are already in the library — marks "Ya añadido" (027 endpoint).
+export function checkVideosExist(ids: Array<string>): Promise<ExistsResponse> {
+	return api<ExistsResponse>("/api/videos/exists", {
+		method: "POST",
+		body: JSON.stringify({ ids }),
+	});
+}
+
+export function processVideo(url: string): Promise<ProcessAsyncResponse> {
+	return api<ProcessAsyncResponse>("/api/videos/process-async", {
+		method: "POST",
+		body: JSON.stringify({ url }),
+	});
+}
+
+export function getFlowStatus(flowRunId: string): Promise<FlowStatus> {
+	return api<FlowStatus>(`/api/videos/status/${encodeURIComponent(flowRunId)}`);
 }
 
 export function getProfile(): Promise<ProfileResponse> {
