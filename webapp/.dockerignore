@@ -1,0 +1,17 @@
+# Reinstalled/rebuilt inside the image — never copy from the host.
+node_modules
+dist
+
+# Local env (VITE_API_BASE_URL comes in as a build arg, not from a file).
+.env
+.env.local
+.env.*.local
+
+# Build/IDE/OS cruft
+.vite
+*.log
+.DS_Store
+
+# Docker
+Dockerfile
+.dockerignore

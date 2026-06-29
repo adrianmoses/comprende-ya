@@ -153,12 +153,57 @@ Equivalent to `uvx honcho start`. Ctrl+C stops all three processes.
 
 ## Docker
 
+### Single API image
+
 ```bash
 docker build -t comprende-ya .
 docker run --env-file .env -p 8000:8000 comprende-ya
 ```
 
-The image bundles `ffmpeg` and runs `fastapi run src/main.py` on port 8000. Migrations are not applied automatically — run `alembic upgrade head` against your target database before (or as part of) deployment.
+The image bundles `ffmpeg`, the spaCy `es_dep_news_trf` model (+ `torch`, so
+in-container exercise generation works), and runs `docker-entrypoint.sh`, which
+applies `alembic upgrade head` and then starts `fastapi run src/main.py` on port
+8000. Migrations run automatically on every start (idempotent) — point
+`DATABASE_URL` at a reachable Postgres.
+
+## Deploy (self-host, Docker Compose)
+
+`docker-compose.yml` brings up the whole product — **api + webapp + postgres** —
+on a single host:
+
+```bash
+cp .env.example .env          # then fill in the real values
+docker compose up --build     # api :8000, webapp :3000, postgres (internal)
+```
+
+What it does:
+
+- **`db`** — Postgres 16 on a named volume `pgdata` (survives restarts).
+- **`api`** — built from the root `Dockerfile`; runs migrations then serves;
+  mounts a named volume `recordings` at `/app/recordings` so learner audio
+  (feature 021) persists across redeploys.
+- **`webapp`** — built from `webapp/Dockerfile`; serves the TanStack Start build
+  over Node (`server.mjs`) on port 3000.
+
+### The public-origin contract (read this)
+
+Two values in `.env` **must be the public origins reachable from the user's
+browser** — never the internal compose service name (`http://api:8000`):
+
+| Variable | Meaning | Local example |
+| --- | --- | --- |
+| `PUBLIC_API_URL` | API origin baked into the webapp **at build time** (`VITE_API_BASE_URL`; Vite inlines it). | `http://localhost:8000` |
+| `ALLOWED_ORIGINS` | Comma-separated webapp origin(s) the API accepts CORS from. Never `*` (the API sends credentials). | `http://localhost:3000` |
+
+Behind TLS / a reverse proxy these become your real `https://` origins (e.g.
+`PUBLIC_API_URL=https://api.example.com`,
+`ALLOWED_ORIGINS=https://app.example.com`). TLS termination, the reverse proxy,
+and any external/managed database are the operator's responsibility — out of
+scope for the compose file, which exposes plain HTTP.
+
+> Because `VITE_API_BASE_URL` is inlined at **build** time, changing
+> `PUBLIC_API_URL` requires rebuilding the webapp image
+> (`docker compose up --build webapp`), not just restarting it.
 
 ## Useful endpoints
 
