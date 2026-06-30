@@ -2,6 +2,7 @@
   "name": "webapp",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.1",
   "imports": {
     "#/*": "./src/*"
   },
