@@ -151,6 +151,14 @@ make dev
 
 Equivalent to `uvx honcho start`. Ctrl+C stops all three processes.
 
+> **Why the `Procfile` pins `PORT=3000` on the frontend.** honcho assigns each
+> process an incrementing `PORT` (backend `5000`, frontend `5100`, …). The
+> webapp's Nitro dev server honors `process.env.PORT` over the `--port 3000`
+> flag, so without the pin `make dev` would serve the frontend on `5100` — which
+> the backend's `ALLOWED_ORIGINS` (`:3000`) then blocks with a CORS error. The
+> inline `PORT=3000` on the frontend line overrides honcho's assignment. Running
+> `pnpm --dir webapp dev` directly is unaffected (no `PORT` set).
+
 ## Docker
 
 ### Single API image
