@@ -182,8 +182,8 @@ What it does:
 - **`api`** — built from the root `Dockerfile`; runs migrations then serves;
   mounts a named volume `recordings` at `/app/recordings` so learner audio
   (feature 021) persists across redeploys.
-- **`webapp`** — built from `webapp/Dockerfile`; serves the TanStack Start build
-  over Node (`server.mjs`) on port 3000.
+- **`webapp`** — built from `webapp/Dockerfile`; serves the TanStack Start +
+  Nitro build (`node .output/server/index.mjs`) on port 3000.
 
 ### The public-origin contract (read this)
 

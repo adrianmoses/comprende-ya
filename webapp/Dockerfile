@@ -1,6 +1,6 @@
 # Frontend production image (033 — deployment readiness).
-# TanStack Start (Vite + React 19). `vite build` emits a web-fetch handler under
-# dist/server; server.mjs serves it over Node via srvx.
+# TanStack Start (Vite + React 19) + Nitro. `vite build` emits a self-listening
+# Nitro node-server at .output/server/index.mjs.
 FROM node:22-bookworm-slim
 
 # pnpm via corepack (matches the repo's package manager).
@@ -19,11 +19,11 @@ RUN pnpm install --frozen-lockfile
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# Copy source and build (client + server bundles → dist/).
+# Copy source and build (Nitro output → .output/).
 COPY . .
 RUN pnpm build
 
 EXPOSE 3000
 
-# Serve the built fetch handler over Node (honors PORT, default 3000).
-CMD ["node", "server.mjs"]
+# Run the Nitro node-server (honors PORT/NITRO_PORT, default 3000).
+CMD ["node", ".output/server/index.mjs"]

@@ -9,6 +9,36 @@
 
 ---
 
+## Update (2026-06-30): migrated from the srvx adapter to Nitro
+
+The original implementation (below) hand-rolled a `srvx` adapter
+(`webapp/server.mjs`) because the pinned TanStack Start emits a fetch handler,
+not a self-listening server. **Nitro has since been added** to the webapp
+(`nitro/vite` plugin in `vite.config.ts`), which is the framework-native way to
+get that listening server — so `vite build` now emits a self-contained Nitro
+node-server at `.output/server/index.mjs`. Consequences:
+
+- **`webapp/server.mjs` deleted** and the **`srvx` direct dep dropped** — both were
+  the pre-Nitro stopgap. (Nitro still uses srvx internally, transitively.)
+- `package.json` `start` → `node .output/server/index.mjs`; `webapp/Dockerfile`
+  builds and runs `.output` (was `dist/` + `server.mjs`); `.dockerignore` ignores
+  `.output`/`.nitro`. The Nitro server honors `PORT`/`NITRO_PORT` (default 3000),
+  same as before — verified HTTP 200 on :3000 with `VITE_API_BASE_URL` baked in.
+- **This resolves the "Nitro was never present" spec gap** noted below: it now is.
+  ARCHITECTURE.md's "Nitro" description is accurate again.
+- **CORS fix (regression I introduced):** the smoke-prep `.env` line set
+  `ALLOWED_ORIGINS` to a single origin (`http://localhost:3000`), narrower than the
+  pre-033 hardcoded list. Once the app served via Nitro on the `127.0.0.1`
+  interface, `http://127.0.0.1:3000` was rejected. `ALLOWED_ORIGINS` (in `.env` and
+  `.env.example`) now lists all three dev origins
+  (`localhost`/`127.0.0.1`/`0.0.0.0` :3000), restoring parity with the original
+  hardcoded behavior. The *port never changed* — every serving mode binds 3000.
+
+The srvx-based decision below is preserved as the honest state at first
+implementation.
+
+---
+
 ## Context
 
 033 closed five deploy blockers and folded in item **030** (managed model deps).

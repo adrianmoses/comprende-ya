@@ -1,6 +1,8 @@
 # Reinstalled/rebuilt inside the image — never copy from the host.
 node_modules
 dist
+.output
+.nitro
 
 # Local env (VITE_API_BASE_URL comes in as a build arg, not from a file).
 .env

@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "start": "node server.mjs",
+    "start": "node .output/server/index.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -23,9 +23,9 @@
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
     "@tanstack/router-plugin": "^1.132.0",
+    "nitro": "3.0.260610-beta",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "srvx": "0.11.15"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
