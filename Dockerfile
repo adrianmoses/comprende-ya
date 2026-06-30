@@ -16,11 +16,13 @@ RUN uv sync --frozen --no-cache
 # Copy application code
 COPY . .
 
-# Create temp directory for downloads
-RUN mkdir -p temp
+# Create runtime directories. `recordings/` is mounted as a persistent volume in
+# docker-compose (033); `temp/` holds transient audio during processing.
+RUN mkdir -p temp recordings && chmod +x docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["uv", "run", "fastapi", "run", "src/main.py", "--host", "0.0.0.0", "--port", "8000"]
+# Migrate-then-serve (033): the entrypoint runs `alembic upgrade head` before
+# starting the server, so a fresh database comes up fully migrated.
+ENTRYPOINT ["./docker-entrypoint.sh"]

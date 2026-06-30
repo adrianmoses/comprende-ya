@@ -48,3 +48,7 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
+
+# Frontend — built as its own image (webapp/Dockerfile); not needed in the API
+# build context (node_modules/dist would bloat it).
+webapp/
